@@ -14,12 +14,12 @@ const int SCREEN_WIDTH = 1440;
 const int SCREEN_HEIGHT = 810;
 const int SCREEN_FPS = 60;
 // const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
-const int TERRAIN_SEGMENTS = 1000;                       // Number of terrain segments
+const int TERRAIN_SEGMENTS = 2500;                          // Number of terrain segments
 
-const float TERRAIN_HEIGHT = 4.0f;                      // Maximum height of terrain
-const float TERRAIN_WIDTH = 0.1f;                       // noise of terrain
+const float TERRAIN_HEIGHT = 10.0f;                        // Maximum height of terrain
+const float TERRAIN_WIDTH = 0.02f;                       // noise of terrain
 
-const float simWidth = SCREEN_WIDTH / SCALE;
+const float simWidth = (SCREEN_WIDTH / SCALE)*2;
 const float simHeight = SCREEN_HEIGHT / SCALE;
 const float carHeight = 2.0f;
 const float carWidth = 4.0f;
@@ -27,16 +27,20 @@ const float whlRad = 2.0f;
 const float carpos = simWidth/4;
 const float spawn = simHeight/2;
 
+
 // Globals
+float terendpnt = 0 ;
 SDL_Window* gWindow = NULL;
 SDL_Renderer* Rend = NULL;
 TTF_Font* Font = NULL;
 b2WorldId worldId;
 SDL_Texture* carFrame= NULL, *wheel = NULL, *ground = NULL,*background = NULL;
-b2BodyId whl1,whl2,chasi,anchor,axil;
+// b2BodyId whl1,whl2,chasi,anchor,axil;
+b2BodyId whl1,whl2,chasi;
 
 std::vector<b2Vec2> terrainPoints;
 const float TERRAIN_LENGTH = simWidth;
+b2ChainId terrainId;
 
 
 SDL_Texture* loadTexture(const std::string& path) {
@@ -57,7 +61,6 @@ SDL_Texture* textTexture(const std::string& text,SDL_Color color = {0,0,0}) {
     return texTure;
 }
 
-// Function prototypes
 bool init(){
     if(SDL_Init(SDL_INIT_EVERYTHING) < 0)    {
         std::cout << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
@@ -145,10 +148,9 @@ void createTerrain(b2WorldId worldId) {
 
     // Ensure points are in counterclockwise order
     for (size_t i = 1; i < terrainPoints.size(); ++i) {
-        if (terrainPoints[i].x < terrainPoints[i - 1].x-0.1) {
+        if (terrainPoints[i].x > terrainPoints[i - 1].x) {
             std::cout<<"the points are  "<<terrainPoints[i].x<<" , "<<terrainPoints[i-1].x<<'\n'<<"at i: "<<i<<'\n'; 
             std::cerr << "Error: Terrain points are not ordered correctly!\n";
-            // printf("i: %d\n",i);
             return;
         }
     }
@@ -158,24 +160,24 @@ void createTerrain(b2WorldId worldId) {
     chainDef.points = terrainPoints.data();
     chainDef.count = terrainPoints.size();
     chainDef.isLoop = false;
+    chainDef.friction = 0.9f;
 
     // Create a static body for the terrain
     b2BodyDef terrainBodyDef = b2DefaultBodyDef();
     terrainBodyDef.type = b2_staticBody;
     b2BodyId terrainBody = b2CreateBody(worldId, &terrainBodyDef);
 
-    std::reverse(terrainPoints.begin(), terrainPoints.end());
+    // std::reverse(terrainPoints.begin(), terrainPoints.end());
+    if(terrainId.index1)
+    b2DestroyChain(terrainId);
+    terendpnt = terrainPoints.front().x;
+    terrainId = b2CreateChain(terrainBody, &chainDef);
+    std::cout<<"terrain id: "<<terrainId.index1<<" , "<<terrainId.world0<<" , "<<terrainId.revision<<'\n';
 
-
-    // Attach the chain shape to the body
-    b2CreateChain(terrainBody, &chainDef);
-
-    // std::cout << "Created terrain with " << terrainPoints.size() << " points.\n";
 }
 
 
 void generateTerrain() {
-    // printf("Generating terrain...\n");
     terrainPoints.clear();
     float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
     float noiseScale = TERRAIN_WIDTH; // Adjust to control frequency
@@ -186,89 +188,56 @@ void generateTerrain() {
         float y = perlinNoise(x * noiseScale) * amplitude; // Apply Perlin noise
         terrainPoints.push_back(b2Vec2{x, y});
     }
-    std::cout<<"terrainPoints: "<<terrainPoints.size()<<'\n';
-    std::cout<<"begin: "<<terrainPoints.front().x<<'\n';
-    std::cout<<"end: "<<terrainPoints.back().x<<'\n';
-    // std::reverse(terrainPoints.begin(), terrainPoints.end());
+
+    std::reverse(terrainPoints.begin(), terrainPoints.end());
+
+
 }
+
 void updateTerrain(float cameraX) {
-    float lastX = terrainPoints.back().x;
+    float lastX = terrainPoints.front().x;
     float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
     float noiseScale = TERRAIN_WIDTH; // Same scale as generation
     float amplitude = TERRAIN_HEIGHT;
 
-    int ran=0;
 
     // Generate new points
     while (lastX - cameraX < simWidth) {
         lastX += segmentLength;
+
         float newY = perlinNoise(lastX * noiseScale) * amplitude;
-        terrainPoints.push_back(b2Vec2{lastX, newY});
-        ran++;
-        // printf("xxxxxxxxxxxxlastX: %f\n", lastX);
-        // terrainPoints.insert(terrainPoints.begin(), b2Vec2{lastX, newY});
+        terrainPoints.insert(terrainPoints.begin(), b2Vec2{lastX, newY});
     }
-    if(ran)
-    std::cout<<"ran: "<<ran<<'\n';
-
-    // std::cout<<"lastX: "<<lastX<<'\n';
-    // std::cout<<"cameraX: "<<cameraX<<'\n';
-    // std::cout<<"simWidth: "<<simWidth<<'\n';
-    // std::cout<<"terrainPoints: "<<terrainPoints.size()<<'\n';
-    // std::cout<<"diff: "<<lastX-cameraX<<'\n';
-    // std::cout<<"TERRAIN_LENGTH: "<<TERRAIN_LENGTH<<'\n';
-    // std::cout<<"lasrY: "<<terrainPoints.back().y<<'\n'<<"firstY: "<<terrainPoints.front().y<<'\n';
-    // std::cout<<"segmentLength: "<<segmentLength<<"\n\n\n";
-    // std::cout<<"-----------------------------------\n\n\n";
-    // // Remove old points
-    // std::cout<<"front: "<<terrainPoints.front().x<<'\n';
-    // std::cout<<"back: "<<terrainPoints.back().x<<'\n';
-    // std::cout<<"cameraX: "<<cameraX<<'\n';
-    // std::cout<<"simWidth: "<<simWidth<<'\n';
-    // std::cout<<"diff: "<<cameraX - simWidth<<'\n';
-
-
-    while (!terrainPoints.empty() && terrainPoints.back().x < cameraX - simWidth) {
-        terrainPoints.erase(terrainPoints.begin());
-        std::cout<<"erased\n";
-        // terrainPoints.pop_back();
-    }
+    while (!terrainPoints.empty() && terrainPoints.back().x < cameraX) 
+        terrainPoints.pop_back();
 }
 
-int renderTerrain(SDL_Renderer* renderer, float cameraX, int progress = 0) {
+void renderTerrain(SDL_Renderer* renderer, float cameraX) {
     SDL_SetRenderDrawColor(renderer, 34, 139, 34, 255); // Terrain color
     int segLen = static_cast<int>((TERRAIN_LENGTH / TERRAIN_SEGMENTS)*SCALE);
-    // int unit = segLen
-    
-    // int progress = cameraX * segLen;
-    // int progress = (terrainPoints[i].x - cameraX) * SCALE;
     int groundWidth, groundHeight;
     SDL_QueryTexture(ground, NULL, NULL, &groundWidth, &groundHeight);
+
+
+    int progress = static_cast<int>(groundWidth - (static_cast<int>(cameraX * segLen * SCALE * 9)) % groundWidth);
+    bool times = true;
+
+
     for (size_t i = 0; i < terrainPoints.size() - 1; ++i) {
+        progress %= (groundWidth);
         int x = boxToScreenX(terrainPoints[i].x - cameraX);
         int y = boxToScreenY(terrainPoints[i].y);
-        // int x2 = boxToScreenX(terrainPoints[i + 1].x - cameraX);
-        // int y2 = boxToScreenY(terrainPoints[i + 1].y);
 
         SDL_Rect dest = {x, y, segLen+1, SCREEN_HEIGHT - y};
 
-        SDL_Rect srct = {progress, y/4, (segLen*4), (SCREEN_HEIGHT - y)*4};
-        progress+=(segLen*4);
-        // progress++;
-        // if(progress >= groundWidth)
-        // progress = 0;
-        progress %= (groundWidth/segLen);
-        // std::cout<<"x: "<<x<<'\n';
-        // std::cout<<"y: "<<y<<'\n';
-        // std::cout << "Progress: " << progress << std::endl;
-        // std::cout << "Ground Width: " << groundWidth << std::endl;
-        // std::cout << "i: " << i << std::endl;
-        // // SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
-        SDL_RenderCopy(Rend,ground,&srct,&dest);
-    }
-        // std::cout << "Terrain Points: " << terrainPoints.size() << std::endl;
-        // std::cout << "segLen: " << segLen << std::endl;
-        return progress;
+        SDL_Rect srct = {progress, y/8, (segLen*4), (SCREEN_HEIGHT - y)*8};
+        progress+=(segLen*10);
+        SDL_Point rotPoint;
+        rotPoint.x = segLen*4;
+        rotPoint.y = y/2;
+
+        SDL_RenderCopyEx( Rend, ground, &srct, &dest, 0, NULL, SDL_FLIP_HORIZONTAL );
+    }   
 }
 
 void createCar( ){
@@ -298,27 +267,6 @@ void createCar( ){
 
     b2CreateCircleShape(whl1, &shapeDef, &circle);
     b2CreateCircleShape(whl2, &shapeDef, &circle);
-
-
-    b2BodyDef anchorDef = b2DefaultBodyDef();
-    anchorDef.type = b2_staticBody;
-    anchorDef.position = b2Body_GetPosition(chasi); // Anchor at car's current position
-    anchor = b2CreateBody(worldId, &anchorDef);
-
-
-    b2BodyDef axilDef = b2DefaultBodyDef();
-    axilDef.type = b2_dynamicBody; // Correctly define as dynamic
-    axilDef.position = b2Body_GetPosition(chasi); // Place axil at chassis' position
-    axil = b2CreateBody(worldId, &axilDef);
-
-    std::cout<<"the type is : "<<anchorDef.type<<'\n';
-
-    b2ShapeDef axilShapeDef = b2DefaultShapeDef();
-    axilShapeDef.density = 1.0f; // Ensure non-zero density
-    axilShapeDef.friction = 0.3f;
-    axilShapeDef.restitution = 0.1f;
-    b2Polygon axilBox = b2MakeBox(0.1f, 0.1f); // Small box for axil
-    b2CreatePolygonShape(axil, &axilShapeDef, &axilBox);
 }
 
 void createJoin(){
@@ -332,7 +280,7 @@ void createJoin(){
     wheelJointDef.enableMotor = true;
     wheelJointDef.enableSpring = true;
     wheelJointDef.maxMotorTorque = 10000.0f;
-    wheelJointDef.motorSpeed = 4.0f;
+    wheelJointDef.motorSpeed = 6.0f;
     wheelJointDef.hertz = 3.0f;
     wheelJointDef.dampingRatio = 0.8f;
 
@@ -343,34 +291,13 @@ void createJoin(){
     wheelJointDef.localAnchorB = (b2Vec2){carWidth-carWidth/6 , -(carHeight-carHeight/8)};
 
     b2CreateWheelJoint(worldId, &wheelJointDef);
-
-    b2PrismaticJointDef prismaticDef = b2DefaultPrismaticJointDef();
-    prismaticDef.bodyIdA = anchor;
-    prismaticDef.bodyIdB = axil;
-    prismaticDef.localAnchorA = (b2Vec2){0.0f, 0.0f};
-    prismaticDef.localAnchorB = (b2Vec2){0.0f, 0.0f};
-    prismaticDef.localAxisA = (b2Vec2){0.0f, 1.0f}; // Restrict to vertical movement
-    // prismaticDef.enableLimit = true;
-    prismaticDef.lowerTranslation = -simHeight; // Allow vertical movement within bounds
-    prismaticDef.upperTranslation = simHeight;
-    b2CreatePrismaticJoint(worldId, &prismaticDef);
-
-    b2RevoluteJointDef revolveDef = b2DefaultRevoluteJointDef();
-    revolveDef.bodyIdA = axil;
-    revolveDef.bodyIdB = chasi;
-    revolveDef.localAnchorA = (b2Vec2){0.0f, 0.0f};
-    revolveDef.localAnchorB = (b2Vec2){0.0f, 0.0f};
-    b2CreateRevoluteJoint(worldId, &revolveDef);
-
-    
-
 }
 
-void renderCar(){
+void renderCar(float cam){
 
     b2Vec2 boxPos = b2Body_GetPosition(chasi);
     SDL_Rect rect = {
-        boxToScreenX(boxPos.x, carWidth),
+        boxToScreenX(boxPos.x-cam, carWidth),
         boxToScreenY(boxPos.y, carHeight),
         static_cast<int>(carWidth * SCALE * 2 ),
         static_cast<int>(carHeight * SCALE * 2 )
@@ -381,7 +308,7 @@ void renderCar(){
 
     boxPos = b2Body_GetPosition(whl1);
     rect = {
-        boxToScreenX(boxPos.x, whlRad),
+        boxToScreenX(boxPos.x-cam, whlRad),
         boxToScreenY(boxPos.y, whlRad),
         static_cast<int>(whlRad * SCALE * 2 ),
         static_cast<int>(whlRad * SCALE * 2 )
@@ -393,7 +320,7 @@ void renderCar(){
 
     boxPos = b2Body_GetPosition(whl2);
     rect = {
-        boxToScreenX(boxPos.x, whlRad),
+        boxToScreenX(boxPos.x-cam, whlRad),
         boxToScreenY(boxPos.y, whlRad),
         static_cast<int>(whlRad * SCALE * 2 ),
         static_cast<int>(whlRad * SCALE * 2 )
@@ -434,6 +361,7 @@ int main(int argc, char* args[]){
     bool running = true,started = false;
     float cameraX = 0.0f;
     while(running){
+    cameraX = b2Body_GetPosition(chasi).x- simWidth/4;
         startTick = SDL_GetTicks();
         SDL_Event ev;
         while(SDL_PollEvent(&ev) != 0){
@@ -485,13 +413,15 @@ int main(int argc, char* args[]){
         SDL_SetRenderDrawColor(Rend, 0xFF, 0xFF, 0xFF, 0xFF);   //white
         SDL_RenderClear(Rend);
         SDL_RenderCopy(Rend, background, NULL, NULL);
-        progress = renderTerrain(Rend, 0.0f,progress);
+        renderTerrain(Rend,cameraX);
         // SDL_RenderDrawPoint(Rend,10,10);
-        renderCar();
+        renderCar(cameraX);
         if(started){
             updateTerrain(cameraX);
-            createTerrain(worldId);
-            // printf("CameraX: %f\n", cameraX);
+            if(terendpnt - cameraX < simWidth/4)
+                createTerrain(worldId);
+            // createTerrain(worldId);
+            // std::cout<<"cameraX: "<<cameraX<<"terain end: "<<terendpnt<<'\n';
             b2World_Step(worldId, timeStep, subStepCount);
         }
             SDL_RenderPresent(Rend);
