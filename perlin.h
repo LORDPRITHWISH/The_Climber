@@ -68,6 +68,7 @@ float perlinNoise(float x) {
 
     // Normalize to range [0, 1]
     return (rawNoise + 1.0f) / 2.0f;
+    // return rawNoise;
 }
 
 

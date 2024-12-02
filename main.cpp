@@ -7,6 +7,7 @@
 #include<iostream>
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 
 // Constants
 const float SCALE = 20.0f; // Pixels per meter for rendering
@@ -16,7 +17,7 @@ const int SCREEN_FPS = 60;
 // const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 const int TERRAIN_SEGMENTS = 2500;                          // Number of terrain segments
 
-const float TERRAIN_HEIGHT = 10.0f;                        // Maximum height of terrain
+const float TERRAIN_HEIGHT = 6.0f;                        // Maximum height of terrain
 const float TERRAIN_WIDTH = 0.02f;                       // noise of terrain
 
 const float simWidth = (SCREEN_WIDTH / SCALE)*2;
@@ -41,6 +42,7 @@ b2BodyId whl1,whl2,chasi;
 std::vector<b2Vec2> terrainPoints;
 const float TERRAIN_LENGTH = simWidth;
 b2ChainId terrainId;
+b2JointId wheel1,wheel2;
 
 
 SDL_Texture* loadTexture(const std::string& path) {
@@ -90,31 +92,42 @@ bool init(){
 
 }
 bool loader(){
-    Font = TTF_OpenFont("../fonts/sifi_font.ttf", 28);
+    std::string path = "../assets";
+    std::string fpath = "../fonts";
+
+    if (std::filesystem::exists(path)) {
+        std::cout << "Directory exists: " << path << std::endl;
+    } else {
+        path = "./assets";
+        fpath = "./assets";
+        std::cout << "adjusting to : " << path << std::endl;
+    }
+
+    Font = TTF_OpenFont((fpath + "/sifi_font.ttf").c_str(), 28);
     if (Font == NULL) {
         std::cout << "Failed to load font! TTF_Error: " << TTF_GetError() << std::endl;
         return false;
     }
 
-    carFrame = loadTexture("../assets/carFrame.png");
+    carFrame = loadTexture(path+"/carFrame.png");
     if (carFrame == NULL) {
         std::cout << "Failed to load carFrame texture!" << std::endl;
         return false;
     }
 
-    wheel = loadTexture("../assets/wheel.png");
+    wheel = loadTexture(path+"/wheel.png");
     if (wheel == NULL) {
         std::cout << "Failed to load wheel texture!" << std::endl;
         return false;
     }
 
-    ground = loadTexture("../assets/ground.jpg");
+    ground = loadTexture(path+"/ground.jpg");
     if (ground == NULL) {
         std::cout << "Failed to load ground texture!" << std::endl;
         return false;
     }
 
-    background = loadTexture("../assets/background1.png");
+    background = loadTexture(path+"/background1.png");
     if (background == NULL) {
         std::cout << "Failed to load background texture!" << std::endl;
         return false;
@@ -140,7 +153,7 @@ int boxToScreenX(float x, float width = 0.0f) {
     return static_cast<int>((x - width) * SCALE );
 }
 int boxToScreenY(float y, float height = 0.0f) {
-    return static_cast<int>(SCREEN_HEIGHT - ((y + height) * SCALE));
+    return static_cast<int>(SCREEN_HEIGHT - ((y + height+TERRAIN_HEIGHT) * SCALE));
 }
 
 void createTerrain(b2WorldId worldId) {
@@ -243,6 +256,7 @@ void renderTerrain(SDL_Renderer* renderer, float cameraX) {
 void createCar( ){
     b2BodyDef bodyDef = b2DefaultBodyDef();
     bodyDef.type = b2_dynamicBody;
+    bodyDef.allowFastRotation = true;
     bodyDef.position = (b2Vec2){carpos-carWidth, spawn};//wheel 1
     whl1 = b2CreateBody(worldId, &bodyDef);
 
@@ -250,6 +264,9 @@ void createCar( ){
     whl2 = b2CreateBody(worldId, &bodyDef);
     
     bodyDef.position = (b2Vec2){carpos, spawn+carHeight};//chasi
+    bodyDef.angularDamping = 1.0f;
+    bodyDef.linearDamping = 0.5f;
+    bodyDef.allowFastRotation = false;
     chasi = b2CreateBody(worldId, &bodyDef);
 
 
@@ -257,13 +274,17 @@ void createCar( ){
     circle.radius = whlRad;
     circle.center = (b2Vec2){0.0f, 0.0f};
     b2Polygon dynamicBox = b2MakeBox(carWidth, carHeight);
+    dynamicBox.centroid = (b2Vec2){0.0f, -carHeight};
 
     b2ShapeDef shapeDef = b2DefaultShapeDef();
-    shapeDef.density = 3.0f;
+    shapeDef.density = 5.0f;
     shapeDef.friction = 0.3f;
-    shapeDef.restitution = 0.3f;
+    shapeDef.restitution = 0.2f;
+    // shapeDef.
+
     b2CreatePolygonShape(chasi, &shapeDef, &dynamicBox);
     shapeDef.density = 1.0f;
+    shapeDef.friction = 10.9f;
 
     b2CreateCircleShape(whl1, &shapeDef, &circle);
     b2CreateCircleShape(whl2, &shapeDef, &circle);
@@ -277,20 +298,121 @@ void createJoin(){
     wheelJointDef.localAnchorA = (b2Vec2){0.0f, 0.0f};
     wheelJointDef.localAnchorB = (b2Vec2){-carWidth+carWidth/6 , -(carHeight-carHeight/8)};
     wheelJointDef.localAxisA = (b2Vec2){0.0f, 1.0f}; // Ensure correct axis
-    wheelJointDef.enableMotor = true;
+    // wheelJointDef.enableMotor = true;
     wheelJointDef.enableSpring = true;
-    wheelJointDef.maxMotorTorque = 10000.0f;
-    wheelJointDef.motorSpeed = 6.0f;
-    wheelJointDef.hertz = 3.0f;
+    wheelJointDef.maxMotorTorque = 1000.0f;
+    // wheelJointDef.motorSpeed = -5.1f;
+    wheelJointDef.hertz = 4.0f;
     wheelJointDef.dampingRatio = 0.8f;
-
-    b2CreateWheelJoint(worldId, &wheelJointDef);
+    wheelJointDef.enableLimit = true;
+    // wheelJointDef.
+    wheel1 = b2CreateWheelJoint(worldId, &wheelJointDef);
 
     wheelJointDef.bodyIdA = whl2;
     // wheelJointDef.bodyIdB = chasi;
     wheelJointDef.localAnchorB = (b2Vec2){carWidth-carWidth/6 , -(carHeight-carHeight/8)};
 
-    b2CreateWheelJoint(worldId, &wheelJointDef);
+    wheel2 = b2CreateWheelJoint(worldId, &wheelJointDef);
+}
+
+void applyForwardForce(float forceMagnitude=2000, bool front=true, bool back=true, bool dir=false) {
+    // Get the forward direction of the car in world coordinates
+    float vecx = 0.2f,vecy = 0;
+    if(front)
+        vecx += 0.4f,vecy += 0.1f;
+    if(back)
+        vecx += 0.4f,vecy += 0.1f;
+    if(dir)
+        vecx = -vecx;
+    b2Vec2 forwardDirection = b2Body_GetWorldVector(chasi, (b2Vec2){vecx, vecy}); // Assuming forward is local (0, -1)
+
+    // Compute the forward force vector
+    b2Vec2 forwardForce = forwardDirection * forceMagnitude;
+    // printf("force dierection: %f , %f\n",forwardForce.x,forwardForce.y);
+    // Apply the force at the center of mass of the car body
+    b2Body_ApplyForceToCenter(chasi, forwardForce, true);
+}
+
+bool isWheelGrounded(b2WorldId worldId, b2BodyId wheel, b2ChainId terrainChain) {
+    // Get the position of the wheel
+    b2Vec2 wheelPosition = b2Body_GetPosition(wheel);
+
+    // Define the ray's direction (downward)
+    b2Vec2 rayDirection = {0.0f, -1.0f}; // Downward
+    float rayLength = 5.0f;              // Adjust length based on terrain scale
+
+    // Set up the raycast input
+    b2RayCastInput rayInput;
+    rayInput.origin = wheelPosition;
+    rayInput.translation.x = rayDirection.x * rayLength;
+    rayInput.translation.y = rayDirection.y * rayLength;
+    rayInput.maxFraction = 1.0f;
+
+    // Allocate memory for terrain segments
+    const int maxSegments = TERRAIN_SEGMENTS; // Adjust based on the expected number of chain segments
+    b2ShapeId segmentArray[maxSegments];
+
+    // Get segments from the terrain chain
+    int segmentCount = b2Chain_GetSegments(terrainChain, segmentArray, maxSegments);
+
+    if (segmentCount == 0) {
+        std::cerr << "No terrain segments found.\n";
+        return false;
+    }
+
+    // Iterate through chain segments
+    for (int i = 0; i < segmentCount; ++i) {
+        b2ShapeId segmentId = segmentArray[i];
+
+        // Retrieve the chain segment
+        b2ChainSegment chainSegment = b2Shape_GetChainSegment(segmentId);
+
+        // Perform raycast against this segment
+        b2CastOutput castOutput = b2RayCastSegment(&rayInput, &chainSegment.segment, false);
+
+        // Debug output
+        // std::cout << "Checking segment " << i
+        //           << " | Origin: (" << rayInput.origin.x << ", " << rayInput.origin.y << ")"
+        //           << " | Translation: (" << rayInput.translation.x << ", " << rayInput.translation.y << ")"
+        //           << " | Hit: " << castOutput.hit
+        //           << " | Fraction: " << castOutput.fraction << "\n";
+
+        // Check for a valid hit
+        if (castOutput.hit && castOutput.fraction <= 1.0f) {
+            return true; // The wheel is grounded
+        }
+    }
+
+    return false; // No grounding detected
+}
+
+void surfaceRetention() {
+    // Get the direction perpendicular to the wheel (lateral direction)
+    // b2Vec2 lateralDirection = b2Body_GetWorldVector(whl1, (b2Vec2){0.0f, 1.0f});
+
+    // // Compute lateral velocity (the velocity component along the lateral direction)
+    // b2Vec2 lateralVelocity = b2Dot(b2Body_GetLinearVelocity(whl1), lateralDirection) * lateralDirection;
+
+    // // Compute lateral impulse to cancel out the lateral velocity
+    // b2Vec2 lateralImpulse = -b2Body_GetMass(whl1) * lateralVelocity * 8.0f; // Tune the 8.0f scaling factor
+    // b2Body_GetRotation(chasi);
+    // b2Body_ApplyAngularImpulse(chasi, 100.0f, true);
+    float vel = b2Body_GetAngularVelocity(whl1);
+    std::cout<<"angular velocity: "<<vel<<'\n';
+    if (abs(vel) > 50.1f)
+        b2Body_ApplyAngularImpulse(whl1, -vel/2, true);
+    
+    vel = b2Body_GetAngularVelocity(whl2);
+    if (abs(vel) > 50.1f)
+        b2Body_ApplyAngularImpulse(whl2, -vel, true);
+    std::cout<<"angular velocity: "<<vel/2<<"\n\n";
+    // b2CollideChainSegmentAndCapsule(terrainBody,)
+    // Apply the impulse to counteract the lateral velocity
+
+    // std::cout<<"wheel 1: "<< isWheelGrounded(worldId, whl1, terrainId)<<'\n';
+    // std::cout<<"wheel 2: "<< isWheelGrounded(worldId, whl2, terrainId)<<'\n';
+
+    // b2Body_ApplyLinearImpulseToCenter(whl1, lateralImpulse, true);
 }
 
 void renderCar(float cam){
@@ -360,6 +482,7 @@ int main(int argc, char* args[]){
     int progress = 0;
     bool running = true,started = false;
     float cameraX = 0.0f;
+    bool left = false, right = false, motor = false,whog1,whog2;
     while(running){
     cameraX = b2Body_GetPosition(chasi).x- simWidth/4;
         startTick = SDL_GetTicks();
@@ -378,28 +501,68 @@ int main(int argc, char* args[]){
                         case SDLK_ESCAPE: running = false;
                             break;
                         case SDLK_LEFT:
-                            cameraX += segmentLength;
-                            // b2Body_ApplyForceToCenter(whl1, (b2Vec2){-1000.0f, 0.0f}, true);
-                            // b2Body_ApplyForceToCenter(whl2, (b2Vec2){-1000.0f, 0.0f}, true);
+                            // cameraX += segmentLength;
+                            if(!left){
+                                b2WheelJoint_SetMotorSpeed(wheel1, b2WheelJoint_GetMotorSpeed(wheel1) - 1.1f);
+                                b2WheelJoint_SetMotorSpeed(wheel2, b2WheelJoint_GetMotorSpeed(wheel2) - 1.1f);
+                                if(!motor){
+                                    motor = true;
+                                    b2WheelJoint_EnableMotor(wheel1, true);
+                                    b2WheelJoint_EnableMotor(wheel2, true);
+                                }
+                                b2Body_ApplyAngularImpulse(chasi, 100.0f, true);
+                                left = true;
+                            }
+
                             break;
-                        // case SDLK_RIGHT:
-                        //     b2Body_ApplyForceToCenter(whl1, (b2Vec2){1000.0f, 0.0f}, true);
-                        //     b2Body_ApplyForceToCenter(whl2, (b2Vec2){1000.0f, 0.0f}, true);
-                        //     break;
-                        // case SDLK_UP:
-                        //     b2Body_ApplyForceToCenter(whl1, (b2Vec2){0.0f, -1000.0f}, true);
-                        //     b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, -1000.0f}, true);
-                        //     break;
-                        // case SDLK_DOWN:
-                        //     b2Body_ApplyForceToCenter(whl1, (b2Vec2){0.0f, 1000.0f}, true);
-                        //     b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, 1000.0f}, true);
-                        //     break;
+                        case SDLK_RIGHT:
+                            // cameraX -= segmentLength;
+                            if(!right){
+                                b2WheelJoint_SetMotorSpeed(wheel1, b2WheelJoint_GetMotorSpeed(wheel1) + 1.1f);
+                                b2WheelJoint_SetMotorSpeed(wheel2, b2WheelJoint_GetMotorSpeed(wheel2) + 1.1f);
+                                if(!motor){
+                                    motor = true;
+                                    b2WheelJoint_EnableMotor(wheel1, true);
+                                    b2WheelJoint_EnableMotor(wheel2, true);
+                                }
+                                b2Body_ApplyAngularImpulse(chasi, -100.0f, true);
+                                right = true;
+                            }
+                            break;
+                        case SDLK_UP:
+                            b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 10000.0f}, true);
+                            // b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, -10000.0f}, true);
+                            break;
+                        case SDLK_DOWN:
+                            b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, -10000.0f}, true);
+                            // b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, 10000.0f}, true);
+                            break;
+                        case SDLK_d:
+                            b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 10.0f}, true);
+                            b2Body_ApplyAngularImpulse(chasi, -100.0f, true);
+                            break;
+                        case SDLK_a:
+                            b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 10.0f}, true);
+                            b2Body_ApplyAngularImpulse(chasi, 100.0f, true);
+                            break;
                         case SDLK_SPACE:
                             if(!started)
                                 started = true;
                             break;
                         case SDLK_RETURN:
                             started = !started;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case SDL_KEYUP:
+                    switch(ev.key.keysym.sym){
+                        case SDLK_LEFT:
+                            left = false;
+                            break;
+                        case SDLK_RIGHT:
+                            right = false;
                             break;
                         default:
                             break;
@@ -417,11 +580,42 @@ int main(int argc, char* args[]){
         // SDL_RenderDrawPoint(Rend,10,10);
         renderCar(cameraX);
         if(started){
+
+                        std::cout<<"wheel 1: "<< isWheelGrounded(worldId, whl1, terrainId)<<'\n';
+            std::cout<<"wheel 2: "<< isWheelGrounded(worldId, whl2, terrainId)<<"\n\n";
+            whog1 = isWheelGrounded(worldId, whl1, terrainId);
+            whog2 = isWheelGrounded(worldId, whl2, terrainId);
+
             updateTerrain(cameraX);
             if(terendpnt - cameraX < simWidth/4)
                 createTerrain(worldId);
-            // createTerrain(worldId);
-            // std::cout<<"cameraX: "<<cameraX<<"terain end: "<<terendpnt<<'\n';
+
+            if(left){
+                b2WheelJoint_SetMotorSpeed(wheel1, b2WheelJoint_GetMotorSpeed(wheel1) - 1.1f);
+                b2WheelJoint_SetMotorSpeed(wheel2, b2WheelJoint_GetMotorSpeed(wheel2) - 1.1f);
+                applyForwardForce(2000.0f,whog1,whog2,1); // negative
+                if(!whog1 || !whog2)
+                    b2Body_ApplyAngularImpulse(chasi, -10.0f, true);
+            }
+            else if(right){
+                b2WheelJoint_SetMotorSpeed(wheel1, b2WheelJoint_GetMotorSpeed(wheel1) + 1.1f);
+                b2WheelJoint_SetMotorSpeed(wheel2, b2WheelJoint_GetMotorSpeed(wheel2) + 1.1f);
+                applyForwardForce(2000.0f,whog1,whog2,0);
+                if(!whog2 || !whog1)
+                    b2Body_ApplyAngularImpulse(chasi, 10.0f, true);
+            }
+            else if(motor){
+                b2WheelJoint_SetMotorSpeed(wheel1, 0);
+                b2WheelJoint_SetMotorSpeed(wheel2, 0);
+                b2WheelJoint_EnableMotor(wheel1, false);
+                b2WheelJoint_EnableMotor(wheel2, false);
+
+                motor = false;
+            }
+            surfaceRetention();
+            // std::cout<<"wheel 1: "<< isWheelGrounded(worldId, whl1, terrainId)<<'\n';
+            // std::cout<<"wheel 2: "<< isWheelGrounded(worldId, whl2, terrainId)<<"\n\n";
+
             b2World_Step(worldId, timeStep, subStepCount);
         }
             SDL_RenderPresent(Rend);
