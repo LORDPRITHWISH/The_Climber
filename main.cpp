@@ -10,22 +10,22 @@
 #include <filesystem>
 
 // Constants
-const float SCALE = 20.0f; // Pixels per meter for rendering
+const float SCALE = 25.0f; // Pixels per meter for rendering
 const int SCREEN_WIDTH = 1440;
 const int SCREEN_HEIGHT = 810;
 const int SCREEN_FPS = 60;
 // const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 const int TERRAIN_SEGMENTS = 2500;                          // Number of terrain segments
 
-const float TERRAIN_HEIGHT = 6.0f;                        // Maximum height of terrain
+const float TERRAIN_HEIGHT = 8.0f;                        // Maximum height of terrain
 const float TERRAIN_WIDTH = 0.02f;                       // noise of terrain
 
-const float simWidth = (SCREEN_WIDTH / SCALE)*2;
+const float simWidth = (SCREEN_WIDTH / SCALE)*4;
 const float simHeight = SCREEN_HEIGHT / SCALE;
 const float carHeight = 2.0f;
 const float carWidth = 4.0f;
-const float whlRad = 2.0f;
-const float carpos = simWidth/4;
+const float whlRad = 2.2f;
+const float carpos = simWidth/2;
 const float spawn = simHeight/2;
 
 
@@ -185,7 +185,7 @@ void createTerrain(b2WorldId worldId) {
     b2DestroyChain(terrainId);
     terendpnt = terrainPoints.front().x;
     terrainId = b2CreateChain(terrainBody, &chainDef);
-    std::cout<<"terrain id: "<<terrainId.index1<<" , "<<terrainId.world0<<" , "<<terrainId.revision<<'\n';
+    // std::cout<<"terrain id: "<<terrainId.index1<<" , "<<terrainId.world0<<" , "<<terrainId.revision<<'\n';
 
 }
 
@@ -209,20 +209,25 @@ void generateTerrain() {
 
 void updateTerrain(float cameraX) {
     float lastX = terrainPoints.front().x;
+    // printf("lastX: %d\n",boxToScreenX(lastX));
+    // printf("lastX ori: %f\n",lastX);
+    // std::cout<<"firstX: "<<terrainPoints.back().x<<"\n";
     float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
     float noiseScale = TERRAIN_WIDTH; // Same scale as generation
     float amplitude = TERRAIN_HEIGHT;
 
 
     // Generate new points
-    while (lastX - cameraX < simWidth) {
+    while (lastX - cameraX < simWidth-carpos) {
         lastX += segmentLength;
 
         float newY = perlinNoise(lastX * noiseScale) * amplitude;
         terrainPoints.insert(terrainPoints.begin(), b2Vec2{lastX, newY});
     }
-    while (!terrainPoints.empty() && terrainPoints.back().x < cameraX) 
+    while (!terrainPoints.empty() && terrainPoints.back().x < cameraX-carpos) 
         terrainPoints.pop_back();
+    // printf("last xx lastX: %d\n",boxToScreenX(lastX));
+    // printf("last xyx lastX ori: %f\n",lastX);
 }
 
 void renderTerrain(SDL_Renderer* renderer, float cameraX) {
@@ -230,27 +235,30 @@ void renderTerrain(SDL_Renderer* renderer, float cameraX) {
     int segLen = static_cast<int>((TERRAIN_LENGTH / TERRAIN_SEGMENTS)*SCALE);
     int groundWidth, groundHeight;
     SDL_QueryTexture(ground, NULL, NULL, &groundWidth, &groundHeight);
+    float ratio = groundWidth/TERRAIN_SEGMENTS;
+    
+    
+    // int bug=5;
 
-
-    int progress = static_cast<int>(groundWidth - (static_cast<int>(cameraX * segLen * SCALE * 9)) % groundWidth);
+    // int progress = static_cast<int>(groundWidth - (static_cast<int>(cameraX * segLen * SCALE * 9)) % groundWidth);
+    int progress = groundWidth - static_cast<int>(cameraX*segLen*3*SCALE*ratio) % groundWidth;
     bool times = true;
-
+    // std::cout<<"progress: "<<progress<<" cameraX: "<<cameraX<<'\n';
 
     for (size_t i = 0; i < terrainPoints.size() - 1; ++i) {
         progress %= (groundWidth);
         int x = boxToScreenX(terrainPoints[i].x - cameraX);
         int y = boxToScreenY(terrainPoints[i].y);
-
+        // if(i>terrainPoints.size()-bug)
+        //     std::cout<<"x: "<<x<<" y: "<<y<<'\n';
         SDL_Rect dest = {x, y, segLen+1, SCREEN_HEIGHT - y};
 
-        SDL_Rect srct = {progress, y/8, (segLen*4), (SCREEN_HEIGHT - y)*8};
-        progress+=(segLen*10);
-        SDL_Point rotPoint;
-        rotPoint.x = segLen*4;
-        rotPoint.y = y/2;
+        SDL_Rect srct = {progress, y, (segLen), (SCREEN_HEIGHT - y)};
+        progress+=(segLen*3);
 
         SDL_RenderCopyEx( Rend, ground, &srct, &dest, 0, NULL, SDL_FLIP_HORIZONTAL );
     }   
+    // std::cout<<"---------------\n";
 }
 
 void createCar( ){
@@ -277,13 +285,13 @@ void createCar( ){
     dynamicBox.centroid = (b2Vec2){0.0f, -carHeight};
 
     b2ShapeDef shapeDef = b2DefaultShapeDef();
-    shapeDef.density = 5.0f;
+    shapeDef.density = 3.0f;
     shapeDef.friction = 0.3f;
     shapeDef.restitution = 0.2f;
     // shapeDef.
 
     b2CreatePolygonShape(chasi, &shapeDef, &dynamicBox);
-    shapeDef.density = 1.0f;
+    shapeDef.density = 0.5f;
     shapeDef.friction = 10.9f;
 
     b2CreateCircleShape(whl1, &shapeDef, &circle);
@@ -303,8 +311,8 @@ void createJoin(){
     wheelJointDef.maxMotorTorque = 1000.0f;
     // wheelJointDef.motorSpeed = -5.1f;
     wheelJointDef.hertz = 4.0f;
-    wheelJointDef.dampingRatio = 0.8f;
-    wheelJointDef.enableLimit = true;
+    wheelJointDef.dampingRatio = 0.6f;
+    // wheelJointDef.enableLimit = true;
     // wheelJointDef.
     wheel1 = b2CreateWheelJoint(worldId, &wheelJointDef);
 
@@ -315,7 +323,7 @@ void createJoin(){
     wheel2 = b2CreateWheelJoint(worldId, &wheelJointDef);
 }
 
-void applyForwardForce(float forceMagnitude=2000, bool front=true, bool back=true, bool dir=false) {
+void applyForwardForce(float forceMagnitude=1000, bool front=true, bool back=true, bool dir=false) {
     // Get the forward direction of the car in world coordinates
     float vecx = 0.2f,vecy = 0;
     if(front)
@@ -386,33 +394,43 @@ bool isWheelGrounded(b2WorldId worldId, b2BodyId wheel, b2ChainId terrainChain) 
     return false; // No grounding detected
 }
 
-void surfaceRetention() {
-    // Get the direction perpendicular to the wheel (lateral direction)
-    // b2Vec2 lateralDirection = b2Body_GetWorldVector(whl1, (b2Vec2){0.0f, 1.0f});
-
-    // // Compute lateral velocity (the velocity component along the lateral direction)
-    // b2Vec2 lateralVelocity = b2Dot(b2Body_GetLinearVelocity(whl1), lateralDirection) * lateralDirection;
-
-    // // Compute lateral impulse to cancel out the lateral velocity
-    // b2Vec2 lateralImpulse = -b2Body_GetMass(whl1) * lateralVelocity * 8.0f; // Tune the 8.0f scaling factor
-    // b2Body_GetRotation(chasi);
-    // b2Body_ApplyAngularImpulse(chasi, 100.0f, true);
+void wheelstability(){
+    float limit = 25;
     float vel = b2Body_GetAngularVelocity(whl1);
-    std::cout<<"angular velocity: "<<vel<<'\n';
-    if (abs(vel) > 50.1f)
-        b2Body_ApplyAngularImpulse(whl1, -vel/2, true);
+    if (abs(vel) > limit)
+        b2Body_ApplyAngularImpulse(whl1, -vel, true);
     
     vel = b2Body_GetAngularVelocity(whl2);
-    if (abs(vel) > 50.1f)
+    if (abs(vel) > limit)
         b2Body_ApplyAngularImpulse(whl2, -vel, true);
-    std::cout<<"angular velocity: "<<vel/2<<"\n\n";
-    // b2CollideChainSegmentAndCapsule(terrainBody,)
-    // Apply the impulse to counteract the lateral velocity
+}
 
-    // std::cout<<"wheel 1: "<< isWheelGrounded(worldId, whl1, terrainId)<<'\n';
-    // std::cout<<"wheel 2: "<< isWheelGrounded(worldId, whl2, terrainId)<<'\n';
+void surfaceRetention(bool wh1, bool wh2){ 
+    b2Rot rota = b2Body_GetRotation(chasi);
+    float radangel = b2Rot_GetAngle(rota);
+    float angle = radangel * (180.0f / M_PI);
+    // std::cout<<"angle: "<<angle<<'\n';
+    if(angle > 40.0f && wh1 && wh2 && angle < 80.0f){
 
-    // b2Body_ApplyLinearImpulseToCenter(whl1, lateralImpulse, true);
+
+        b2Vec2 oppone = b2Body_GetWorldVector(whl1, (b2Vec2){-1.0f, 1.0f});
+
+        oppone = -oppone*1000.0f;
+        if(oppone.y > 0)
+            oppone.y = 0;
+        if(oppone.x < 0)
+            oppone.x = 0;
+
+        b2Body_ApplyForceToCenter(chasi, oppone, true);
+
+        // std::cout<<"negative vertor: "<<oppone.x<<" , "<<oppone.y<<'\n';
+
+    }
+
+}
+
+void info(){
+    // std::cout<<"--------------------------------------\n\n";
 }
 
 void renderCar(float cam){
@@ -482,9 +500,14 @@ int main(int argc, char* args[]){
     int progress = 0;
     bool running = true,started = false;
     float cameraX = 0.0f;
-    bool left = false, right = false, motor = false,whog1,whog2;
+    bool left = false, right = false, motor = false,whog1,whog2,down = false,debug=false;
     while(running){
-    cameraX = b2Body_GetPosition(chasi).x- simWidth/4;
+    cameraX = b2Body_GetPosition(chasi).x- simWidth/16;
+    // cameraX = b2Body_GetPosition(chasi).x- 30;
+    // std::cout<<"cameraX: "<<cameraX<<'\n';
+    // std::cout<<"simWidth: "<<simWidth<<'\n';
+    // std::cout<<"caroseition: "<<carpos<<'\n';
+
         startTick = SDL_GetTicks();
         SDL_Event ev;
         while(SDL_PollEvent(&ev) != 0){
@@ -534,16 +557,17 @@ int main(int argc, char* args[]){
                             // b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, -10000.0f}, true);
                             break;
                         case SDLK_DOWN:
-                            b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, -10000.0f}, true);
-                            // b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, 10000.0f}, true);
+                            // b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, -10000.0f}, true);
+                            b2Body_ApplyForceToCenter(whl1, (b2Vec2){0.0f, -10000.0f}, true);
+                            b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, -10000.0f}, true);
                             break;
                         case SDLK_d:
                             b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 10.0f}, true);
-                            b2Body_ApplyAngularImpulse(chasi, -100.0f, true);
+                            b2Body_ApplyAngularImpulse(chasi, -50.0f, true);
                             break;
                         case SDLK_a:
                             b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 10.0f}, true);
-                            b2Body_ApplyAngularImpulse(chasi, 100.0f, true);
+                            b2Body_ApplyAngularImpulse(chasi, 50.0f, true);
                             break;
                         case SDLK_SPACE:
                             if(!started)
@@ -552,8 +576,18 @@ int main(int argc, char* args[]){
                         case SDLK_RETURN:
                             started = !started;
                             break;
+                        case SDLK_z:
+                            down = !down;
+                            break;
+                        case SDLK_KP_0:
+                            info();
+                            break;
+                        case SDLK_p:
+                            debug = !debug;
+                            break;
                         default:
                             break;
+
                     }
                     break;
                 case SDL_KEYUP:
@@ -581,8 +615,8 @@ int main(int argc, char* args[]){
         renderCar(cameraX);
         if(started){
 
-                        std::cout<<"wheel 1: "<< isWheelGrounded(worldId, whl1, terrainId)<<'\n';
-            std::cout<<"wheel 2: "<< isWheelGrounded(worldId, whl2, terrainId)<<"\n\n";
+            //             std::cout<<"wheel 1: "<< isWheelGrounded(worldId, whl1, terrainId)<<'\n';
+            // std::cout<<"wheel 2: "<< isWheelGrounded(worldId, whl2, terrainId)<<"\n\n";
             whog1 = isWheelGrounded(worldId, whl1, terrainId);
             whog2 = isWheelGrounded(worldId, whl2, terrainId);
 
@@ -612,17 +646,26 @@ int main(int argc, char* args[]){
 
                 motor = false;
             }
-            surfaceRetention();
-            // std::cout<<"wheel 1: "<< isWheelGrounded(worldId, whl1, terrainId)<<'\n';
-            // std::cout<<"wheel 2: "<< isWheelGrounded(worldId, whl2, terrainId)<<"\n\n";
+
+            if(down){
+                // b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, -10000.0f}, true);
+                b2Body_ApplyForceToCenter(whl1, (b2Vec2){0.0f, -500.0f}, true);
+                b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, -500.0f}, true);
+            }
+            info();
+            wheelstability();
+            surfaceRetention(whog1,whog2);
 
             b2World_Step(worldId, timeStep, subStepCount);
-        }
-            SDL_RenderPresent(Rend);
 
-            Uint32 frameDuration = SDL_GetTicks() - startTick;
-            // std::cout << "Frame Duration: " << frameDuration << "ms" << std::endl;
-            if (frameDuration < 1000 / 60) {
+            if(debug)
+                started = false;
+        }
+        SDL_RenderPresent(Rend);
+
+        Uint32 frameDuration = SDL_GetTicks() - startTick;
+        // std::cout << "Frame Duration: " << frameDuration << "ms" << std::endl;
+        if (frameDuration < 1000 / 60) {
                 SDL_Delay((1000 / 60) - frameDuration);
             }
     }
