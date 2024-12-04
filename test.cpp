@@ -1,33 +1,14 @@
-#include<iostream>
-#include<vector>
-
-std::vector<int> vec;
-
-void vecre(){
-    for(int i=0;i<10;i++){
-        vec.push_back(i);
-    }
-    std::cout<<"vector size: "<<vec.size()<<'\n';
-    std::cout<<"vector begin: "<<vec.front()<<'\n';
-    std::cout<<"vector end: "<<vec.back()<<'\n';
-}
-
-void vecshow(){
-    for(int i=0;i<vec.size();i++){
-        std::cout<<vec[i]<<'\n';
-    }
-}
-
-void detail(){
-    std::cout<<"vector size: "<<vec.size()<<'\n';
-    std::cout<<"vector begin: "<<vec.front()<<'\n';
-    std::cout<<"vector end: "<<vec.back()<<'\n';
-}
+#include <iostream>
 
 int main() {
-    // std::cout << "Hello, World!" << std::endl;
-    vecre();
-    // vecshow();
-    detail();
+    // Write C++ code here
+        int a=10,b=20;
+    while(b){
+        b--;
+        if(a--)
+            std::cout << a<<'\n';
+        
+    }
+
     return 0;
 }
