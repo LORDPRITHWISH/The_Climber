@@ -69,10 +69,10 @@ void rendercoins(float cam){
     for (size_t i = 0; i < coins.size(); ++i) {
         b2Vec2 boxPos = b2Body_GetPosition(coins[i]);
         SDL_Rect rect = {
-            boxToScreenX(boxPos.x-cam, 0.5f),
-            boxToScreenY(boxPos.y, 0.5f),
-            static_cast<int>(0.5f * SCALE * 2 ),
-            static_cast<int>(0.5f * SCALE * 2 )
+            boxToScreenX(boxPos.x-cam, 1),
+            boxToScreenY(boxPos.y, 1),
+            static_cast<int>(SCALE * 2 ),
+            static_cast<int>(SCALE * 2 )
         };
         SDL_RenderCopy(Rend, coinimj, NULL, &rect);
     }
@@ -95,11 +95,17 @@ void showScore(int camX){
     SDL_RenderCopy(Rend, scoreval, NULL, &valrect);
 }
 void info(){
-    for(auto i : coins){
-        b2Vec2 pos = b2Body_GetPosition(i);
-        std::cout<<"coin: "<<pos.x<<" , "<<pos.y<<'\n';
-    }
-    std::cout<<"--------------------------------------\n\n";
+    // for(auto i : coins){
+    //     b2Vec2 pos = b2Body_GetPosition(i);
+    //     std::cout<<"coin: "<<pos.x<<" , "<<pos.y<<'\n';
+    // }
+    // std::cout<<"--------------------------------------\n\n";
+    // for(auto i : coins){
+    //     std::cout<<"coin: "<<i.index1<<" , "<<i.world0<<" , "<<i.revision<<'\n';
+    // }
+
+    b2Vec2 speed = b2Body_GetLinearVelocity(chasi);
+    std::cout<<speed.x<<" , "<<speed.y <<'\n';
 }
 
 

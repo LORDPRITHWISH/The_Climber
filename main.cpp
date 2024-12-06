@@ -1,5 +1,36 @@
 #include "renderfunctions.h"
 
+int bodyIndexer(std::vector<b2BodyId>& cnlst, b2BodyId body){
+        // b2Vec2 speed = b2Body_GetLinearVelocity(body);
+        // std::cout<<speed.x<<" , "<<speed.y <<'\n';
+    for (int i = 0; i < cnlst.size(); i++){
+        // if(cnlst[i].index1 == body.index1 && cnlst[i].world0 == body.world0 && cnlst[i].revision == body.revision)
+
+        // std::cout<<"coin: "<<cnlst[i].index1<<" vs "<<body.index1<<'\n';
+
+        if(cnlst[i].index1 == body.index1)
+            return i;
+    }
+    return -1;
+}
+
+void sensordetect(){
+    b2SensorEvents sensorEvents = b2World_GetSensorEvents(worldId);
+    for (int i = 0; i < sensorEvents.beginCount; ++i)
+    {
+        b2SensorBeginTouchEvent* beginTouch = sensorEvents.beginEvents + i;
+        b2BodyId coin = b2Shape_GetBody(beginTouch->sensorShapeId);
+        int index = bodyIndexer(coins, coin);
+        if(index != -1){
+            coins.erase(coins.begin()+index);
+            // b2DestroyBody(coin);
+        }
+
+        // void* myUserData = b2Shape_GetUserData(beginTouch->visitorShapeId);
+        // std::cout << "Sensor Begin Event: " << myUserData << std::endl;
+        // process begin event
+    }
+}
 
 int main(int argc, char* args[]){
     if(!init())    {
@@ -12,14 +43,14 @@ int main(int argc, char* args[]){
     }
 
     createCar();
-
-    float timeStep = 1.0f / 60.0f;
-    int subStepCount = 4;
     createJoin();
     generateTerrain();
     createTerrain(worldId);
-    float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
 
+
+    float timeStep = 1.0f / 60.0f;
+    int subStepCount = 4;
+    float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
     int progress = 0;
     bool running = true,started = false;
     float cameraX = 0.0f;
@@ -177,11 +208,13 @@ int main(int argc, char* args[]){
             surfaceRetention(whog1,whog2);
 
             b2World_Step(worldId, timeStep, subStepCount);
+            sensordetect();
 
             if(debug)
                 started = false;
         }
         showScore(cameraX);
+        rendercoins(cameraX);
         SDL_RenderPresent(Rend);
 
         Uint32 frameDuration = SDL_GetTicks() - startTick;

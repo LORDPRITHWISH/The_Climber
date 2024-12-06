@@ -68,6 +68,7 @@ bool loader(){
     }
 
     carFrame = loadTexture(path+"/carFrame.png");
+    // carFrame = loadTexture(path+"/carr.png");
     if (carFrame == NULL) {
         std::cout << "Failed to load carFrame texture!" << std::endl;
         return false;

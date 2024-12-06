@@ -58,7 +58,7 @@ void gencoin(float x, float y){
     coins.push_back(coin);
 
     b2Circle circle;
-    circle.radius = 0.5f;
+    circle.radius = 1;
     circle.center = (b2Vec2){0.0f, 0.0f};
 
     b2ShapeDef shapeDef = b2DefaultShapeDef();
@@ -66,7 +66,7 @@ void gencoin(float x, float y){
     shapeDef.friction = 0.3f;
     shapeDef.restitution = 0.2f;
     shapeDef.isSensor = true;
-
+    // std::cout<<"coin created at: "<<x<<" , "<<y<<'\n';
     b2CreateCircleShape(coin, &shapeDef, &circle);
 }
 
