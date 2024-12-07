@@ -1,35 +1,10 @@
 #include "renderfunctions.h"
 
-int bodyIndexer(std::vector<b2BodyId>& cnlst, b2BodyId body){
-        // b2Vec2 speed = b2Body_GetLinearVelocity(body);
-        // std::cout<<speed.x<<" , "<<speed.y <<'\n';
-    for (int i = 0; i < cnlst.size(); i++){
-        // if(cnlst[i].index1 == body.index1 && cnlst[i].world0 == body.world0 && cnlst[i].revision == body.revision)
 
-        // std::cout<<"coin: "<<cnlst[i].index1<<" vs "<<body.index1<<'\n';
 
-        if(cnlst[i].index1 == body.index1)
-            return i;
-    }
-    return -1;
-}
-
-void sensordetect(){
-    b2SensorEvents sensorEvents = b2World_GetSensorEvents(worldId);
-    for (int i = 0; i < sensorEvents.beginCount; ++i)
-    {
-        b2SensorBeginTouchEvent* beginTouch = sensorEvents.beginEvents + i;
-        b2BodyId coin = b2Shape_GetBody(beginTouch->sensorShapeId);
-        int index = bodyIndexer(coins, coin);
-        if(index != -1){
-            coins.erase(coins.begin()+index);
-            // b2DestroyBody(coin);
-        }
-
-        // void* myUserData = b2Shape_GetUserData(beginTouch->visitorShapeId);
-        // std::cout << "Sensor Begin Event: " << myUserData << std::endl;
-        // process begin event
-    }
+void info(){
+    std::cout<<"size: "<<coins.size()<<'\n';
+    std::cout<<"terrs x point: "<<terrainPoints.back().x<<'\n';
 }
 
 int main(int argc, char* args[]){
@@ -46,15 +21,15 @@ int main(int argc, char* args[]){
     createJoin();
     generateTerrain();
     createTerrain(worldId);
-
+    createhuman();
+    // cleatePoly();
 
     float timeStep = 1.0f / 60.0f;
-    int subStepCount = 4;
+    int subStepCount = 4,progress = 0;
     float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
-    int progress = 0;
-    bool running = true,started = false;
+    bool running = true,started = false,left = false, right = false, motor = false,whog1,whog2,down = false,debug=false;;
     float cameraX = 0.0f;
-    bool left = false, right = false, motor = false,whog1,whog2,down = false,debug=false;
+    SDL_SetRenderDrawBlendMode(Rend, SDL_BLENDMODE_BLEND);
     while(running){
         Uint32 startTick;
         cameraX = b2Body_GetPosition(chasi).x- simWidth/16;
@@ -68,6 +43,19 @@ int main(int argc, char* args[]){
                 case SDL_MOUSEBUTTONDOWN : 
                 if(!started)
                     started = true;
+                else
+                    switch(ev.button.button){
+                        case SDL_BUTTON_LEFT:
+                        spawnWheel(ev.button.x, SCREEN_HEIGHT - ev.button.y, cameraX);
+                            // std::cout<<"mouse pos: "<<ev.button.x<<'\n';
+                            break;
+                            
+                        case SDL_BUTTON_RIGHT:
+                            b2Body_SetAngularVelocity(chasi, 0.0f);
+                            break;
+                        default:
+                            break;
+                    }
 
                 break;
                 case SDL_KEYDOWN:
@@ -136,6 +124,13 @@ int main(int argc, char* args[]){
                         case SDLK_p:
                             debug = !debug;
                             break;
+                        case SDLK_BACKSPACE:
+                            removeWheel();
+                            break;
+                        case SDLK_w:
+                            b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 2000.0f}, true);
+                            straighten();
+                            break;
                         default:
                             break;
 
@@ -157,13 +152,18 @@ int main(int argc, char* args[]){
 
         }
         
-        // SDL_SetRenderDrawColor(Rend, 0, 0, 0, 0xFF);     //black
         SDL_SetRenderDrawColor(Rend, 0xFF, 0xFF, 0xFF, 0xFF);   //white
         SDL_RenderClear(Rend);
-        SDL_RenderCopy(Rend, background, NULL, NULL);
+
+        renderBackground(cameraX);
         renderTerrain(Rend,cameraX);
         // SDL_RenderDrawPoint(Rend,10,10);
+        renderHuman(cameraX);
         renderCar(cameraX);
+        showScore(cameraX);
+        rendercoins(cameraX);
+        showCoinCount();
+
         if(started){
 
             //             std::cout<<"wheel 1: "<< isWheelGrounded(worldId, whl1, terrainId)<<'\n';
@@ -213,8 +213,12 @@ int main(int argc, char* args[]){
             if(debug)
                 started = false;
         }
-        showScore(cameraX);
-        rendercoins(cameraX);
+        else if(gameover){
+            SDL_Rect overlay = {0, (SCREEN_HEIGHT-500)/2, SCREEN_WIDTH, 500};
+            SDL_RenderCopy(Rend, gameoverlogo, NULL, &overlay);
+        }
+        // remderpoly(cameraX);
+        rendWheel(cameraX);
         SDL_RenderPresent(Rend);
 
         Uint32 frameDuration = SDL_GetTicks() - startTick;

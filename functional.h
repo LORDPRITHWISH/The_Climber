@@ -1,6 +1,27 @@
 #ifndef functional
 #include"setup.h"
 
+void cleaCoins(){
+    // for (int i = 0; i < coins.size(); i++)
+    //     b2DestroyBody(coins[i]);
+    int i=0;
+    while(true){
+        // if(coins.empty())
+        //     break;
+        if(i>=coins.size())
+            break;
+        
+        if(b2Body_GetPosition(coins[i]).x < terrainPoints.back().x){
+            b2DestroyBody(coins[i]);
+            coins.erase(coins.begin()+i);
+            std::cout<<"coin destroyed\n";
+        }
+        else
+            i++;
+    }    
+
+    coins.clear();
+}
 
 void createTerrain(b2WorldId worldId) {
     if (terrainPoints.size() < 2) return;
@@ -50,6 +71,7 @@ void generateTerrain() {
 }
 
 void gencoin(float x, float y){ 
+    y+=2;
     b2BodyDef bodyDef = b2DefaultBodyDef();
     bodyDef.type = b2_staticBody;
     bodyDef.position = (b2Vec2){ x , y };
@@ -73,9 +95,7 @@ void gencoin(float x, float y){
 void updateTerrain(float cameraX) {
     static int cointimer = 100;
     float lastX = terrainPoints.front().x;
-    // printf("lastX: %d\n",boxToScreenX(lastX));
-    // printf("lastX ori: %f\n",lastX);
-    // std::cout<<"firstX: "<<terrainPoints.back().x<<"\n";
+
     float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
     float noiseScale = TERRAIN_WIDTH; // Same scale as generation
     float amplitude = TERRAIN_HEIGHT;
@@ -88,14 +108,32 @@ void updateTerrain(float cameraX) {
         float newY = perlinNoise(lastX * noiseScale) * amplitude;
         terrainPoints.insert(terrainPoints.begin(), b2Vec2{lastX, newY});
         if(!cointimer--){
-            cointimer = 100;
+            cointimer = rand()%400+30;
+            // cointimer = 20;
             gencoin(lastX,newY);
         }
     }
     while (!terrainPoints.empty() && terrainPoints.back().x < cameraX-carpos) 
         terrainPoints.pop_back();
-    // printf("last xx lastX: %d\n",boxToScreenX(lastX));
-    // printf("last xyx lastX ori: %f\n",lastX);
+
+}
+
+b2Polygon makeCarPoly(){
+
+    b2Vec2 points[5] = {
+        {-4.0f, -2.0f},
+        {-4.0f, 1.0f},
+        {2.0f, 2.0f},
+        {4.0f, 1.0f},
+        {4.0f, -2.0f},
+    };
+    
+    b2Hull hull = b2ComputeHull(points, 5);
+    
+
+
+    float radius = 0.0f; // No rounding
+    return b2MakePolygon(&hull, radius);
 }
 
 void createCar( ){
@@ -118,14 +156,13 @@ void createCar( ){
     b2Circle circle;
     circle.radius = whlRad;
     circle.center = (b2Vec2){0.0f, 0.0f};
-    b2Polygon dynamicBox = b2MakeBox(carWidth, carHeight);
-    dynamicBox.centroid = (b2Vec2){0.0f, -carHeight};
+
+    b2Polygon dynamicBox = makeCarPoly();
 
     b2ShapeDef shapeDef = b2DefaultShapeDef();
     shapeDef.density = 3.0f;
     shapeDef.friction = 0.3f;
     shapeDef.restitution = 0.2f;
-    // shapeDef.
 
     b2CreatePolygonShape(chasi, &shapeDef, &dynamicBox);
     shapeDef.density = 0.5f;
@@ -147,7 +184,7 @@ void createJoin(){
     wheelJointDef.enableSpring = true;
     wheelJointDef.maxMotorTorque = 1000.0f;
     // wheelJointDef.motorSpeed = -5.1f;
-    wheelJointDef.hertz = 4.0f;
+    wheelJointDef.hertz = 3.0f;
     wheelJointDef.dampingRatio = 0.6f;
     // wheelJointDef.enableLimit = true;
     // wheelJointDef.
@@ -158,6 +195,40 @@ void createJoin(){
     wheelJointDef.localAnchorB = (b2Vec2){carWidth-carWidth/6 , -(carHeight-carHeight/8)};
 
     wheel2 = b2CreateWheelJoint(worldId, &wheelJointDef);
+}
+
+void spawnWheel(float x, float y, float camx){
+    x = x/SCALE + camx;
+    y = y/SCALE - TERRAIN_HEIGHT;
+    // std::cout<<"wheel spawned at: "<<x<<" , "<<y<<'\n';
+
+    for(auto slot:terrainPoints){
+        if(slot.x < x){
+            if(slot.y > y)
+                y = slot.y+2;
+            break;
+        }
+    }
+
+    b2BodyDef ballBodyDef = b2DefaultBodyDef();
+    ballBodyDef.position = (b2Vec2){x, y};
+    ballBodyDef.type = b2_dynamicBody;
+    // ballBodyDef
+
+    b2BodyId ballId = b2CreateBody(worldId, &ballBodyDef);
+
+    b2Body_SetLinearVelocity(ballId, (b2Vec2){0.0f, 0.0f});
+
+    b2Circle circle;
+    circle.radius = dropwhlrad;
+    circle.center = (b2Vec2){0.0f, 0.0f};
+
+    b2ShapeDef ballShapeDef = b2DefaultShapeDef();
+    ballShapeDef.density = 1.0f;
+    ballShapeDef.friction = 0.3f;
+    ballShapeDef.restitution = 0.9f;
+    b2CreateCircleShape(ballId, &ballShapeDef, &circle);
+    wheels.push_back(ballId);
 }
 
 void applyForwardForce(float forceMagnitude=1000, bool front=true, bool back=true, bool dir=false) {
@@ -232,7 +303,7 @@ bool isWheelGrounded(b2WorldId worldId, b2BodyId wheel, b2ChainId terrainChain) 
 }
 
 void wheelstability(){
-    float limit = 25;
+    float limit = 15;
     float vel = b2Body_GetAngularVelocity(whl1);
     if (abs(vel) > limit)
         b2Body_ApplyAngularImpulse(whl1, -vel, true);
@@ -265,5 +336,90 @@ void surfaceRetention(bool wh1, bool wh2){
     }
 
 }
+
+int bodyIndexer(std::vector<b2BodyId>& cnlst, b2BodyId body){
+    for (int i = 0; i < cnlst.size(); i++)
+        if(cnlst[i].index1 == body.index1)
+            return i;
+    return -1;
+}
+
+void sensordetect(){
+    b2SensorEvents sensorEvents = b2World_GetSensorEvents(worldId);
+    for (int i = 0; i < sensorEvents.beginCount; ++i)
+    {
+        b2SensorBeginTouchEvent* beginTouch = sensorEvents.beginEvents + i;
+        b2BodyId coin = b2Shape_GetBody(beginTouch->sensorShapeId);
+        int index = bodyIndexer(coins, coin);
+        if(index != -1){
+            coins.erase(coins.begin()+index);
+            b2DestroyBody(coin);
+            coincount++;
+        }
+    }
+}
+
+void removeWheel(){
+    while(wheels.size()){
+        b2DestroyBody(wheels.back());
+        wheels.pop_back();
+    }
+}
+
+void straighten(){
+    float angel = b2Rot_GetAngle(b2Body_GetRotation(chasi));
+    // std::cout<<"angle: "<<angel<<'\n';
+    b2Body_SetAngularVelocity(chasi, -angel*2);
+}
+
+void createhuman(){
+    b2BodyDef bodyDef = b2DefaultBodyDef();
+    bodyDef.type = b2_dynamicBody;
+    bodyDef.position = (b2Vec2){simWidth/2, spawn+carHeight+bodyunit*1.3};
+    torso = b2CreateBody(worldId, &bodyDef);
+    bodyDef.position = (b2Vec2){simWidth/2, spawn+carHeight+bodyunit*3};
+    head = b2CreateBody(worldId, &bodyDef);
+
+    b2Polygon dynamicBox1 = b2MakeBox(bodyunit, 2 * bodyunit);
+    b2Polygon dynamicBox2 = b2MakeBox(bodyunit, bodyunit);
+
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.density = 0.1f;
+    shapeDef.friction = 0.3f;
+    shapeDef.restitution = 0.2f;
+
+    b2CreatePolygonShape(torso, &shapeDef, &dynamicBox1);
+    b2CreatePolygonShape(head, &shapeDef, &dynamicBox2);
+
+    b2RevoluteJointDef revjoindef = b2DefaultRevoluteJointDef();
+    revjoindef.bodyIdA = torso;
+    revjoindef.bodyIdB = head;
+    revjoindef.localAnchorA = (b2Vec2){0.0f, bodyunit*1.3};
+    revjoindef.localAnchorB = (b2Vec2){0.0f, -bodyunit*0.5};
+    b2CreateRevoluteJoint(worldId, &revjoindef);
+    
+    b2DistanceJointDef disjondef = b2DefaultDistanceJointDef();
+    disjondef.bodyIdA = torso;
+    disjondef.bodyIdB = chasi;
+    disjondef.localAnchorA = (b2Vec2){0.0f, -bodyunit*2};
+    disjondef.localAnchorB = (b2Vec2){-carWidth, 0};
+    disjondef.length = 3.0f;
+    disjondef.maxLength = 3.5f;
+    disjondef.enableSpring = true;
+    disjondef.hertz = 2.0f;
+    disjondef.dampingRatio = 0.9f;
+
+    b2CreateDistanceJoint(worldId, &disjondef);
+    
+    // b2RevoluteJointDef jointDef = b2DefaultRevoluteJointDef();
+    revjoindef.bodyIdA = torso;
+    revjoindef.bodyIdB = chasi;
+    revjoindef.localAnchorA = (b2Vec2){0.0f, -bodyunit*1.3};
+    revjoindef.localAnchorB = (b2Vec2){0.0f, bodyunit*0.5};
+    b2CreateRevoluteJoint(worldId, &revjoindef);
+
+
+}
+
 
 #endif

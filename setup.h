@@ -98,15 +98,51 @@ bool loader(){
         return false;
     }
 
-    scoretxt = textTexture("SCORE: ",{20,200,250});
+    scoretxt = textTexture("SCORE: ",{20,60,200});
     if (scoretxt == NULL) {
         std::cout << "Failed to load score texture!" << std::endl;
         return false;
     }
 
-    scoreval = textTexture("0",{20,200,250});
+    cointxt = textTexture("COINS: ",{20,60,200});
+    if (cointxt == NULL) {
+        std::cout << "Failed to load coin texture!" << std::endl;
+        return false;
+    }
+
+    scoreval = textTexture("0",{20,60,200});
     if (scoreval == NULL) {
         std::cout << "Failed to load score value texture!" << std::endl;
+        return false;
+    }
+
+    coinval = textTexture("0",{20,60,200});
+    if (coinval == NULL) {
+        std::cout << "Failed to load coin value texture!" << std::endl;
+        return false;
+    }
+
+    gameoverlogo = loadTexture(path+"/Game_Over.png");
+    if (gameoverlogo == NULL) {
+        std::cout << "Failed to load game over texture!" << std::endl;
+        return false;
+    }
+
+    headimj = loadTexture(path+"/head.png");
+    if (headimj == NULL) {
+        std::cout << "Failed to load head texture!" << std::endl;
+        return false;
+    }
+
+    torsoimj = loadTexture(path+"/torso.png");
+    if (torsoimj == NULL) {
+        std::cout << "Failed to load torso texture!" << std::endl;
+        return false;
+    }
+
+    falwheel = loadTexture(path+"/wheel2.png");
+    if (falwheel == NULL) {
+        std::cout << "Failed to load wheel texture!" << std::endl;
         return false;
     }
 
