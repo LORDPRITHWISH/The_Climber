@@ -1,0 +1,97 @@
+
+void renderPolygon(SDL_Renderer* renderer, b2BodyId body, b2Polygon* polygon, float camera, float scale) {
+    // Get the body's position and rotation
+    b2Vec2 bodyPosition = b2Body_GetPosition(body);
+    std::cout<<"bodypos: "<<boxToScreenX(bodyPosition.x-camera, carWidth)<<" , "<<boxToScreenY(bodyPosition.y, carHeight)<<'\n';
+    SDL_SetRenderDrawColor(Rend, 0x00, 0xFF, 0x00, 0xFF);
+
+    SDL_RenderDrawLine(renderer, 0, 0, boxToScreenX(bodyPosition.x-camera, carWidth), boxToScreenY(bodyPosition.y, carHeight));
+
+    // float bodyAngle = -b2Rot_GetAngle(b2Body_GetRotation(body))* (180.0f / M_PI);
+    float bodyAngle = b2Rot_GetAngle(b2Body_GetRotation(body));
+    // Access polygon vertices
+    int32_t vertexCount = polygon->count;
+    SDL_Point screenVertices[vertexCount];
+
+    for (int32_t i = 0; i < vertexCount; ++i) {
+        // Transform local vertices to world coordinates
+        b2Vec2 localVertex = polygon->vertices[i];
+        b2Vec2 worldVertex;
+        worldVertex.x = bodyPosition.x + cosf(bodyAngle) * localVertex.x - sinf(bodyAngle) * localVertex.y;
+        worldVertex.y = bodyPosition.y + sinf(bodyAngle) * localVertex.x + cosf(bodyAngle) * localVertex.y;
+
+        // Translate to camera space
+        b2Vec2 cameraSpaceVertex;
+        cameraSpaceVertex.x = worldVertex.x - camera;
+        cameraSpaceVertex.y = worldVertex.y + TERRAIN_HEIGHT;
+
+
+        // Scale and convert to screen coordinates
+        screenVertices[i].x = (int)(cameraSpaceVertex.x * scale);
+        screenVertices[i].y = SCREEN_HEIGHT - (int)(cameraSpaceVertex.y * scale);
+    }
+    SDL_SetRenderDrawColor(Rend, 0xFF, 0xFF, 0xFF, 0xFF);
+    // Render the polygon as lines in SDL2
+    for (int32_t i = 0; i < vertexCount; ++i) {
+        int32_t nextIndex = (i + 1) % vertexCount; // Wrap around to the first vertex
+
+        SDL_RenderDrawLine(
+            renderer,
+            screenVertices[i].x, screenVertices[i].y,
+            screenVertices[nextIndex].x, screenVertices[nextIndex].y
+        );
+        // std::cout<<"value: "<<screenVertices[i].x<<" , "<<screenVertices[i].y<<'\n';
+    }
+    // std::cout<<"chasix: "<<screenVertices[0].x<<" , "<<screenVertices[0].y<<'\n';
+    std::cout<<"-----------------\n";
+}
+
+
+void cleatePoly(){
+        // Define a polygon (example)
+
+    b2BodyDef bodyDef = b2DefaultBodyDef();
+    bodyDef.type = b2_dynamicBody;
+    bodyDef.position = (b2Vec2){carpos, spawn+carHeight};//chasi
+    bodyDef.angularDamping = 1.0f;
+    bodyDef.linearDamping = 0.5f;
+    bodyDef.allowFastRotation = false;
+    tricha = b2CreateBody(worldId, &bodyDef);
+
+    b2ShapeDef shapeDef = b2DefaultShapeDef(
+
+    );
+    shapeDef.density = 3.0f;
+    shapeDef.friction = 0.3f;
+    shapeDef.restitution = 0.2f;
+    
+    int val =5;
+
+    b2Vec2 points[val] = {
+        {-4.0f, -2.0f},
+        {-4.0f, 1.0f},
+        {2.0f, 2.0f},
+        {4.0f, 1.0f},
+        {4.0f, -2.0f},
+    };
+    
+    b2Hull hull = b2ComputeHull(points, val);
+    
+
+
+    float radius = 0.0f; // No rounding
+    bodygon = b2MakePolygon(&hull, radius);
+    // RenderPolygon(Rend, polygon);
+
+    b2CreatePolygonShape(chasi, &shapeDef, &bodygon);
+        // Present the frame
+}
+
+void remderpoly(float cam){ 
+    // b2Body_GetPosition(tricha);
+    // std::cout<<"rendering\n";
+    renderPolygon(Rend, chasi, &bodygon, cam, SCALE);
+
+}
+
+

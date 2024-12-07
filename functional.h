@@ -118,6 +118,24 @@ void updateTerrain(float cameraX) {
 
 }
 
+b2Polygon makeCarPoly(){
+
+    b2Vec2 points[5] = {
+        {-4.0f, -2.0f},
+        {-4.0f, 1.0f},
+        {2.0f, 2.0f},
+        {4.0f, 1.0f},
+        {4.0f, -2.0f},
+    };
+    
+    b2Hull hull = b2ComputeHull(points, 5);
+    
+
+
+    float radius = 0.0f; // No rounding
+    return b2MakePolygon(&hull, radius);
+}
+
 void createCar( ){
     b2BodyDef bodyDef = b2DefaultBodyDef();
     bodyDef.type = b2_dynamicBody;
@@ -139,20 +157,7 @@ void createCar( ){
     circle.radius = whlRad;
     circle.center = (b2Vec2){0.0f, 0.0f};
 
-    
-
-
-
-
-    // b2Polygon dynamicBox;
-    // dynamicBox.
-    // dynamicBox.centroid = (b2Vec2){0.0f, -carHeight};
-    // b2PolygonShape dynamicBox;
-    // dynamicBox.SetAsBox(carWidth, carHeight);
-
-
-
-    b2Polygon dynamicBox = b2MakeBox(carWidth, carHeight);
+    b2Polygon dynamicBox = makeCarPoly();
 
     b2ShapeDef shapeDef = b2DefaultShapeDef();
     shapeDef.density = 3.0f;
@@ -190,6 +195,10 @@ void createJoin(){
     wheelJointDef.localAnchorB = (b2Vec2){carWidth-carWidth/6 , -(carHeight-carHeight/8)};
 
     wheel2 = b2CreateWheelJoint(worldId, &wheelJointDef);
+}
+
+void spawnWheel(){
+    
 }
 
 void applyForwardForce(float forceMagnitude=1000, bool front=true, bool back=true, bool dir=false) {

@@ -128,6 +128,18 @@ bool loader(){
         return false;
     }
 
+    headimj = loadTexture(path+"/head.png");
+    if (headimj == NULL) {
+        std::cout << "Failed to load head texture!" << std::endl;
+        return false;
+    }
+
+    torsoimj = loadTexture(path+"/torso.png");
+    if (torsoimj == NULL) {
+        std::cout << "Failed to load torso texture!" << std::endl;
+        return false;
+    }
+
     return true;
 
 }

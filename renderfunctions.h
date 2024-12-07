@@ -32,9 +32,24 @@ void renderCar(float cam){
         static_cast<int>(carWidth * SCALE * 2 ),
         static_cast<int>(carHeight * SCALE * 2 )
     };
+    
     SDL_Point center = {rect.w / 2, rect.h / 2};
     float angle = -b2Rot_GetAngle(b2Body_GetRotation(chasi))* (180.0f / M_PI);
     SDL_RenderCopyEx(Rend, carFrame, NULL, &rect, angle, &center, SDL_FLIP_NONE);
+
+
+
+    // std::cout<<"chasi: x>"<<rect.x<<" y>"<<rect.y<<'\n';
+
+    // SDL_SetRenderDrawColor(Rend, 0x00, 0xAA, 0xFF, 0xFF);
+
+    // // SDL_RenderDrawPoint(Rend, rect.x,rect.y);
+    // SDL_RenderDrawLine(Rend, 0, 0, rect.x, rect.y);
+
+
+
+
+
 
     boxPos = b2Body_GetPosition(whl1);
     rect = {
@@ -48,6 +63,7 @@ void renderCar(float cam){
     SDL_RenderCopyEx(Rend, wheel, NULL, &rect, angle, &center, SDL_FLIP_NONE);
 
 
+
     boxPos = b2Body_GetPosition(whl2);
     rect = {
         boxToScreenX(boxPos.x-cam, whlRad),
@@ -58,7 +74,6 @@ void renderCar(float cam){
     center = {rect.w / 2, rect.h / 2};
     angle = -b2Rot_GetAngle(b2Body_GetRotation(whl2))* (180.0f / M_PI);
     SDL_RenderCopyEx(Rend, wheel, NULL, &rect, angle, &center, SDL_FLIP_NONE);
-
 
 
  
@@ -118,19 +133,19 @@ void renderBackground(float cam){
     // int progress = static_cast<int>(cam) % backWidth;
     int progress = -(static_cast<int>(cam*5) % width);
 
-    std::cout<<"progress: "<<progress<<" cam: "<<cam<<'\n';
+    // std::cout<<"progress: "<<progress<<" cam: "<<cam<<'\n';
 
     // SDL_Rect rect = {progress-backWidth, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
     SDL_Rect rect = {progress, 0, width, SCREEN_HEIGHT};
     SDL_RenderCopy(Rend, background, NULL, &rect);
 
-    std::cout<<"1st rect: "<<rect.x<<'\n';
+    // std::cout<<"1st rect: "<<rect.x<<'\n';
     rect.x = progress+width;
     SDL_RenderCopy(Rend, background, NULL, &rect);
 
-    std::cout<<"2nd rect: "<<rect.x<<'\n';
+    // std::cout<<"2nd rect: "<<rect.x<<'\n';
 
-    std::cout<<"------------------------\n";
+    // std::cout<<"------------------------\n";
 }
 
 
