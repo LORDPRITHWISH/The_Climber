@@ -29,7 +29,8 @@ const float carWidth = 4.0f;
 const float whlRad = 2.2f;
 const float carpos = simWidth/2;
 const float spawn = simHeight/2;
-const float bodyunit = 1.0f;
+const float bodyunit = 0.7f;
+const float dropwhlrad = 1.5f;
 
 // Globals
 float terrendpnt = 0 ;
@@ -46,6 +47,7 @@ bool gameover = false;
 b2Polygon bodygon;
 
 
+std::vector<b2BodyId> wheels;
 std::vector<b2BodyId> coins;
 std::vector<b2Vec2> terrainPoints;
 const float TERRAIN_LENGTH = simWidth;

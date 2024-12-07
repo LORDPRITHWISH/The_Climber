@@ -140,6 +140,12 @@ bool loader(){
         return false;
     }
 
+    falwheel = loadTexture(path+"/wheel2.png");
+    if (falwheel == NULL) {
+        std::cout << "Failed to load wheel texture!" << std::endl;
+        return false;
+    }
+
     return true;
 
 }

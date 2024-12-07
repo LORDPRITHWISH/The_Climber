@@ -37,20 +37,6 @@ void renderCar(float cam){
     float angle = -b2Rot_GetAngle(b2Body_GetRotation(chasi))* (180.0f / M_PI);
     SDL_RenderCopyEx(Rend, carFrame, NULL, &rect, angle, &center, SDL_FLIP_NONE);
 
-
-
-    // std::cout<<"chasi: x>"<<rect.x<<" y>"<<rect.y<<'\n';
-
-    // SDL_SetRenderDrawColor(Rend, 0x00, 0xAA, 0xFF, 0xFF);
-
-    // // SDL_RenderDrawPoint(Rend, rect.x,rect.y);
-    // SDL_RenderDrawLine(Rend, 0, 0, rect.x, rect.y);
-
-
-
-
-
-
     boxPos = b2Body_GetPosition(whl1);
     rect = {
         boxToScreenX(boxPos.x-cam, whlRad),
@@ -148,6 +134,47 @@ void renderBackground(float cam){
     // std::cout<<"------------------------\n";
 }
 
+void rendWheel(float camx){
+    for (size_t i = 0; i < wheels.size(); ++i) {
+        b2Vec2 boxPos = b2Body_GetPosition(wheels[i]);
+        SDL_Rect rect = {
+            boxToScreenX(boxPos.x-camx, dropwhlrad),
+            boxToScreenY(boxPos.y, dropwhlrad),
+            static_cast<int>(dropwhlrad * SCALE * 2 ),
+            static_cast<int>(dropwhlrad * SCALE * 2 )
+        };
+        SDL_Point center = {rect.w / 2, rect.h / 2};    
+        float angle = -b2Rot_GetAngle(b2Body_GetRotation(wheels[i]))* (180.0f / M_PI);
+        // std::cout<<"angle: "<<angle<<'\n';
+        SDL_RenderCopyEx(Rend, falwheel, NULL, &rect, angle, &center, SDL_FLIP_NONE);
+    }
+}
+
+void renderHuman(float camx){
+    b2Vec2 boxPos = b2Body_GetPosition(torso);
+    SDL_Rect rect = {
+        boxToScreenX(boxPos.x-camx, bodyunit),
+        boxToScreenY(boxPos.y, 2*bodyunit),
+        static_cast<int>(bodyunit * SCALE * 2 ),
+        static_cast<int>(2 * bodyunit * SCALE * 2 )
+    };
+    
+    SDL_Point center = {rect.w / 2, rect.h / 2};
+    float angle = -b2Rot_GetAngle(b2Body_GetRotation(torso))* (180.0f / M_PI);
+    SDL_RenderCopyEx(Rend, torsoimj, NULL, &rect, angle, &center, SDL_FLIP_NONE);
+
+    boxPos = b2Body_GetPosition(head);
+    rect = {
+        boxToScreenX(boxPos.x-camx, bodyunit),
+        boxToScreenY(boxPos.y, bodyunit),
+        static_cast<int>(bodyunit * SCALE * 2 ),
+        static_cast<int>(bodyunit * SCALE * 2 )
+    };
+    center = {rect.w / 2, rect.h / 2};
+    angle = -b2Rot_GetAngle(b2Body_GetRotation(head))* (180.0f / M_PI);
+    SDL_RenderCopyEx(Rend, headimj, NULL, &rect, angle, &center, SDL_FLIP_NONE);
+
+}
 
 
 #endif

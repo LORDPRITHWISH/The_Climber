@@ -197,8 +197,38 @@ void createJoin(){
     wheel2 = b2CreateWheelJoint(worldId, &wheelJointDef);
 }
 
-void spawnWheel(){
-    
+void spawnWheel(float x, float y, float camx){
+    x = x/SCALE + camx;
+    y = y/SCALE - TERRAIN_HEIGHT;
+    // std::cout<<"wheel spawned at: "<<x<<" , "<<y<<'\n';
+
+    for(auto slot:terrainPoints){
+        if(slot.x < x){
+            if(slot.y > y)
+                y = slot.y+2;
+            break;
+        }
+    }
+
+    b2BodyDef ballBodyDef = b2DefaultBodyDef();
+    ballBodyDef.position = (b2Vec2){x, y};
+    ballBodyDef.type = b2_dynamicBody;
+    // ballBodyDef
+
+    b2BodyId ballId = b2CreateBody(worldId, &ballBodyDef);
+
+    b2Body_SetLinearVelocity(ballId, (b2Vec2){0.0f, 0.0f});
+
+    b2Circle circle;
+    circle.radius = dropwhlrad;
+    circle.center = (b2Vec2){0.0f, 0.0f};
+
+    b2ShapeDef ballShapeDef = b2DefaultShapeDef();
+    ballShapeDef.density = 1.0f;
+    ballShapeDef.friction = 0.3f;
+    ballShapeDef.restitution = 0.9f;
+    b2CreateCircleShape(ballId, &ballShapeDef, &circle);
+    wheels.push_back(ballId);
 }
 
 void applyForwardForce(float forceMagnitude=1000, bool front=true, bool back=true, bool dir=false) {
@@ -328,5 +358,68 @@ void sensordetect(){
         }
     }
 }
+
+void removeWheel(){
+    while(wheels.size()){
+        b2DestroyBody(wheels.back());
+        wheels.pop_back();
+    }
+}
+
+void straighten(){
+    float angel = b2Rot_GetAngle(b2Body_GetRotation(chasi));
+    // std::cout<<"angle: "<<angel<<'\n';
+    b2Body_SetAngularVelocity(chasi, -angel*2);
+}
+
+void createhuman(){
+    b2BodyDef bodyDef = b2DefaultBodyDef();
+    bodyDef.type = b2_dynamicBody;
+    bodyDef.position = (b2Vec2){simWidth/2, spawn+carHeight+bodyunit*1.3};
+    torso = b2CreateBody(worldId, &bodyDef);
+    bodyDef.position = (b2Vec2){simWidth/2, spawn+carHeight+bodyunit*3};
+    head = b2CreateBody(worldId, &bodyDef);
+
+    b2Polygon dynamicBox1 = b2MakeBox(bodyunit, 2 * bodyunit);
+    b2Polygon dynamicBox2 = b2MakeBox(bodyunit, bodyunit);
+
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.density = 0.1f;
+    shapeDef.friction = 0.3f;
+    shapeDef.restitution = 0.2f;
+
+    b2CreatePolygonShape(torso, &shapeDef, &dynamicBox1);
+    b2CreatePolygonShape(head, &shapeDef, &dynamicBox2);
+
+    b2RevoluteJointDef revjoindef = b2DefaultRevoluteJointDef();
+    revjoindef.bodyIdA = torso;
+    revjoindef.bodyIdB = head;
+    revjoindef.localAnchorA = (b2Vec2){0.0f, bodyunit*1.3};
+    revjoindef.localAnchorB = (b2Vec2){0.0f, -bodyunit*0.5};
+    b2CreateRevoluteJoint(worldId, &revjoindef);
+    
+    b2DistanceJointDef disjondef = b2DefaultDistanceJointDef();
+    disjondef.bodyIdA = torso;
+    disjondef.bodyIdB = chasi;
+    disjondef.localAnchorA = (b2Vec2){0.0f, -bodyunit*2};
+    disjondef.localAnchorB = (b2Vec2){-carWidth, 0};
+    disjondef.length = 3.0f;
+    disjondef.maxLength = 3.5f;
+    disjondef.enableSpring = true;
+    disjondef.hertz = 2.0f;
+    disjondef.dampingRatio = 0.9f;
+
+    b2CreateDistanceJoint(worldId, &disjondef);
+    
+    // b2RevoluteJointDef jointDef = b2DefaultRevoluteJointDef();
+    revjoindef.bodyIdA = torso;
+    revjoindef.bodyIdB = chasi;
+    revjoindef.localAnchorA = (b2Vec2){0.0f, -bodyunit*1.3};
+    revjoindef.localAnchorB = (b2Vec2){0.0f, bodyunit*0.5};
+    b2CreateRevoluteJoint(worldId, &revjoindef);
+
+
+}
+
 
 #endif

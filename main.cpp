@@ -1,57 +1,6 @@
 #include "renderfunctions.h"
 
-void createhuman(){
-    b2BodyDef bodyDef = b2DefaultBodyDef();
-    bodyDef.type = b2_dynamicBody;
-    bodyDef.position = (b2Vec2){simWidth/2, spawn+carHeight*2};
-    torso = b2CreateBody(worldId, &bodyDef);
-    bodyDef.position = (b2Vec2){simWidth/2, spawn+carHeight*2+bodyunit*2};
-    head = b2CreateBody(worldId, &bodyDef);
 
-    b2Polygon dynamicBox1 = b2MakeBox(bodyunit, 2 * bodyunit);
-    b2Polygon dynamicBox2 = b2MakeBox(bodyunit, bodyunit);
-
-    b2ShapeDef shapeDef = b2DefaultShapeDef();
-    shapeDef.density = 0.1f;
-    shapeDef.friction = 0.3f;
-    shapeDef.restitution = 0.2f;
-
-    b2CreatePolygonShape(torso, &shapeDef, &dynamicBox1);
-    b2CreatePolygonShape(head, &shapeDef, &dynamicBox2);
-
-    b2RevoluteJointDef jointDef = b2DefaultRevoluteJointDef();
-    jointDef.bodyIdA = torso;
-    jointDef.bodyIdB = head;
-    jointDef.localAnchorA = (b2Vec2){0.0f, 2.0f};
-    jointDef.localAnchorB = (b2Vec2){0.0f, -0.5f};
-    b2CreateRevoluteJoint(worldId, &jointDef);
-}
-
-void renderHuman(float camx){
-    b2Vec2 boxPos = b2Body_GetPosition(torso);
-    SDL_Rect rect = {
-        boxToScreenX(boxPos.x-camx, 1),
-        boxToScreenY(boxPos.y, 2),
-        static_cast<int>(1 * SCALE * 2 ),
-        static_cast<int>(2 * SCALE * 2 )
-    };
-    
-    SDL_Point center = {rect.w / 2, rect.h / 2};
-    float angle = -b2Rot_GetAngle(b2Body_GetRotation(torso))* (180.0f / M_PI);
-    SDL_RenderCopyEx(Rend, torsoimj, NULL, &rect, angle, &center, SDL_FLIP_NONE);
-
-    boxPos = b2Body_GetPosition(head);
-    rect = {
-        boxToScreenX(boxPos.x-camx, 1),
-        boxToScreenY(boxPos.y, 1),
-        static_cast<int>(1 * SCALE * 2 ),
-        static_cast<int>(1 * SCALE * 2 )
-    };
-    center = {rect.w / 2, rect.h / 2};
-    angle = -b2Rot_GetAngle(b2Body_GetRotation(head))* (180.0f / M_PI);
-    SDL_RenderCopyEx(Rend, headimj, NULL, &rect, angle, &center, SDL_FLIP_NONE);
-
-}
 
 void info(){
     std::cout<<"size: "<<coins.size()<<'\n';
@@ -94,14 +43,15 @@ int main(int argc, char* args[]){
                 case SDL_MOUSEBUTTONDOWN : 
                 if(!started)
                     started = true;
+                else
                     switch(ev.button.button){
                         case SDL_BUTTON_LEFT:
-                            b2Body_SetAngularVelocity(chasi, 0.0f);
+                        spawnWheel(ev.button.x, SCREEN_HEIGHT - ev.button.y, cameraX);
+                            // std::cout<<"mouse pos: "<<ev.button.x<<'\n';
                             break;
+                            
                         case SDL_BUTTON_RIGHT:
-                            // b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, -10000.0f}, true);
-                            b2Body_ApplyForceToCenter(whl1, (b2Vec2){0.0f, -10000.0f}, true);
-                            b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, -10000.0f}, true);
+                            b2Body_SetAngularVelocity(chasi, 0.0f);
                             break;
                         default:
                             break;
@@ -174,6 +124,13 @@ int main(int argc, char* args[]){
                         case SDLK_p:
                             debug = !debug;
                             break;
+                        case SDLK_BACKSPACE:
+                            removeWheel();
+                            break;
+                        case SDLK_w:
+                            b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 2000.0f}, true);
+                            straighten();
+                            break;
                         default:
                             break;
 
@@ -201,11 +158,11 @@ int main(int argc, char* args[]){
         renderBackground(cameraX);
         renderTerrain(Rend,cameraX);
         // SDL_RenderDrawPoint(Rend,10,10);
+        renderHuman(cameraX);
         renderCar(cameraX);
         showScore(cameraX);
         rendercoins(cameraX);
         showCoinCount();
-        renderHuman(cameraX);
 
         if(started){
 
@@ -261,6 +218,7 @@ int main(int argc, char* args[]){
             SDL_RenderCopy(Rend, gameoverlogo, NULL, &overlay);
         }
         // remderpoly(cameraX);
+        rendWheel(cameraX);
         SDL_RenderPresent(Rend);
 
         Uint32 frameDuration = SDL_GetTicks() - startTick;
