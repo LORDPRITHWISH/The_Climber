@@ -14,7 +14,7 @@ void renderTerrain(SDL_Renderer* renderer, float cameraX) {
         int x = boxToScreenX(terrainPoints[i].x - cameraX);
         int y = boxToScreenY(terrainPoints[i].y);
         SDL_Rect dest = {x, y, segLen+1, SCREEN_HEIGHT - y};
-
+        y-=100;
         SDL_Rect srct = {progress, y, (segLen), (SCREEN_HEIGHT - y)};
         progress+=(segLen*3);
 
@@ -82,30 +82,55 @@ void showScore(int camX){
     static int score = 0;
     if (score<camX-100){
         score = camX-100;
-        scoreval = textTexture(std::to_string(score),{20,200,250});
+        scoreval = textTexture(std::to_string(score),{20,60,250});
 
     }
     SDL_Rect valrect = {20,20,140,50};
     SDL_RenderCopy(Rend, scoretxt, NULL, &valrect);
-    valrect.x = 170,valrect.y = 20;
+    valrect.x = 170;
     SDL_QueryTexture(scoreval,NULL,NULL,&valrect.w,&valrect.h);
     valrect.w = (valrect.w*50)/valrect.h;
     valrect.h = 50;
     
     SDL_RenderCopy(Rend, scoreval, NULL, &valrect);
 }
-void info(){
-    // for(auto i : coins){
-    //     b2Vec2 pos = b2Body_GetPosition(i);
-    //     std::cout<<"coin: "<<pos.x<<" , "<<pos.y<<'\n';
-    // }
-    // std::cout<<"--------------------------------------\n\n";
-    // for(auto i : coins){
-    //     std::cout<<"coin: "<<i.index1<<" , "<<i.world0<<" , "<<i.revision<<'\n';
-    // }
 
-    b2Vec2 speed = b2Body_GetLinearVelocity(chasi);
-    std::cout<<speed.x<<" , "<<speed.y <<'\n';
+void showCoinCount(){
+    static int cointxtval = 0;
+    if (cointxtval<coincount){
+        cointxtval = coincount;
+        coinval = textTexture(std::to_string(cointxtval),{20,60,250});
+    }
+    SDL_Rect valrect = {20,70,140,50};
+    SDL_RenderCopy(Rend, cointxt, NULL, &valrect);
+    valrect.x = 170;
+    SDL_QueryTexture(coinval,NULL,NULL,&valrect.w,&valrect.h);
+    valrect.w = (valrect.w*50)/valrect.h;
+    valrect.h = 50;
+    SDL_RenderCopy(Rend, coinval, NULL, &valrect);
+}
+
+void renderBackground(float cam){
+    int backWidth, backHeight,width;
+    SDL_QueryTexture(background, NULL, NULL, &backWidth, &backHeight);
+    width = backWidth/backHeight*SCREEN_HEIGHT;
+    // int progress = (backWidth - (static_cast<int>(cam*5) % backWidth));
+    // int progress = static_cast<int>(cam) % backWidth;
+    int progress = -(static_cast<int>(cam*5) % width);
+
+    std::cout<<"progress: "<<progress<<" cam: "<<cam<<'\n';
+
+    // SDL_Rect rect = {progress-backWidth, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_Rect rect = {progress, 0, width, SCREEN_HEIGHT};
+    SDL_RenderCopy(Rend, background, NULL, &rect);
+
+    std::cout<<"1st rect: "<<rect.x<<'\n';
+    rect.x = progress+width;
+    SDL_RenderCopy(Rend, background, NULL, &rect);
+
+    std::cout<<"2nd rect: "<<rect.x<<'\n';
+
+    std::cout<<"------------------------\n";
 }
 
 

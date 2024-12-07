@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+// #include <box2d/b2_polygon_shape.h>
 
 // Constants
 const float SCALE = 25.0f; // Pixels per meter for rendering
@@ -35,14 +36,17 @@ SDL_Window* gWindow = NULL;
 SDL_Renderer* Rend = NULL;
 TTF_Font* Font = NULL;
 b2WorldId worldId;
-SDL_Texture *carFrame= NULL, *wheel = NULL, *ground = NULL, *background = NULL, *coinimj = NULL,*scoretxt=NULL,*scoreval=NULL;
+SDL_Texture *carFrame= NULL, *wheel = NULL, *ground = NULL, *background = NULL, *coinimj = NULL,*scoretxt=NULL,*scoreval=NULL,*cointxt=NULL,*coinval=NULL,*gameoverlogo=NULL;
 // b2BodyId whl1,whl2,chasi,anchor,axil;
-b2BodyId whl1,whl2,chasi;
+b2BodyId whl1,whl2,chasi,tricha;
+
+bool gameover = false;
 
 std::vector<b2BodyId> coins;
 std::vector<b2Vec2> terrainPoints;
 const float TERRAIN_LENGTH = simWidth;
 b2ChainId terrainId;
 b2JointId wheel1,wheel2;
+int coincount = 0;
 
 #endif

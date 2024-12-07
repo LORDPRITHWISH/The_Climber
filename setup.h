@@ -98,15 +98,33 @@ bool loader(){
         return false;
     }
 
-    scoretxt = textTexture("SCORE: ",{20,200,250});
+    scoretxt = textTexture("SCORE: ",{20,60,200});
     if (scoretxt == NULL) {
         std::cout << "Failed to load score texture!" << std::endl;
         return false;
     }
 
-    scoreval = textTexture("0",{20,200,250});
+    cointxt = textTexture("COINS: ",{20,60,200});
+    if (cointxt == NULL) {
+        std::cout << "Failed to load coin texture!" << std::endl;
+        return false;
+    }
+
+    scoreval = textTexture("0",{20,60,200});
     if (scoreval == NULL) {
         std::cout << "Failed to load score value texture!" << std::endl;
+        return false;
+    }
+
+    coinval = textTexture("0",{20,60,200});
+    if (coinval == NULL) {
+        std::cout << "Failed to load coin value texture!" << std::endl;
+        return false;
+    }
+
+    gameoverlogo = loadTexture(path+"/Game_Over.png");
+    if (gameoverlogo == NULL) {
+        std::cout << "Failed to load game over texture!" << std::endl;
         return false;
     }
 

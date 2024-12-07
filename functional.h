@@ -1,6 +1,27 @@
 #ifndef functional
 #include"setup.h"
 
+void cleaCoins(){
+    // for (int i = 0; i < coins.size(); i++)
+    //     b2DestroyBody(coins[i]);
+    int i=0;
+    while(true){
+        // if(coins.empty())
+        //     break;
+        if(i>=coins.size())
+            break;
+        
+        if(b2Body_GetPosition(coins[i]).x < terrainPoints.back().x){
+            b2DestroyBody(coins[i]);
+            coins.erase(coins.begin()+i);
+            std::cout<<"coin destroyed\n";
+        }
+        else
+            i++;
+    }    
+
+    coins.clear();
+}
 
 void createTerrain(b2WorldId worldId) {
     if (terrainPoints.size() < 2) return;
@@ -50,6 +71,7 @@ void generateTerrain() {
 }
 
 void gencoin(float x, float y){ 
+    y+=2;
     b2BodyDef bodyDef = b2DefaultBodyDef();
     bodyDef.type = b2_staticBody;
     bodyDef.position = (b2Vec2){ x , y };
@@ -73,9 +95,7 @@ void gencoin(float x, float y){
 void updateTerrain(float cameraX) {
     static int cointimer = 100;
     float lastX = terrainPoints.front().x;
-    // printf("lastX: %d\n",boxToScreenX(lastX));
-    // printf("lastX ori: %f\n",lastX);
-    // std::cout<<"firstX: "<<terrainPoints.back().x<<"\n";
+
     float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
     float noiseScale = TERRAIN_WIDTH; // Same scale as generation
     float amplitude = TERRAIN_HEIGHT;
@@ -88,14 +108,14 @@ void updateTerrain(float cameraX) {
         float newY = perlinNoise(lastX * noiseScale) * amplitude;
         terrainPoints.insert(terrainPoints.begin(), b2Vec2{lastX, newY});
         if(!cointimer--){
-            cointimer = 100;
+            cointimer = rand()%400+30;
+            // cointimer = 20;
             gencoin(lastX,newY);
         }
     }
     while (!terrainPoints.empty() && terrainPoints.back().x < cameraX-carpos) 
         terrainPoints.pop_back();
-    // printf("last xx lastX: %d\n",boxToScreenX(lastX));
-    // printf("last xyx lastX ori: %f\n",lastX);
+
 }
 
 void createCar( ){
@@ -118,14 +138,26 @@ void createCar( ){
     b2Circle circle;
     circle.radius = whlRad;
     circle.center = (b2Vec2){0.0f, 0.0f};
+
+    
+
+
+
+
+    // b2Polygon dynamicBox;
+    // dynamicBox.
+    // dynamicBox.centroid = (b2Vec2){0.0f, -carHeight};
+    // b2PolygonShape dynamicBox;
+    // dynamicBox.SetAsBox(carWidth, carHeight);
+
+
+
     b2Polygon dynamicBox = b2MakeBox(carWidth, carHeight);
-    dynamicBox.centroid = (b2Vec2){0.0f, -carHeight};
 
     b2ShapeDef shapeDef = b2DefaultShapeDef();
     shapeDef.density = 3.0f;
     shapeDef.friction = 0.3f;
     shapeDef.restitution = 0.2f;
-    // shapeDef.
 
     b2CreatePolygonShape(chasi, &shapeDef, &dynamicBox);
     shapeDef.density = 0.5f;
@@ -147,7 +179,7 @@ void createJoin(){
     wheelJointDef.enableSpring = true;
     wheelJointDef.maxMotorTorque = 1000.0f;
     // wheelJointDef.motorSpeed = -5.1f;
-    wheelJointDef.hertz = 4.0f;
+    wheelJointDef.hertz = 3.0f;
     wheelJointDef.dampingRatio = 0.6f;
     // wheelJointDef.enableLimit = true;
     // wheelJointDef.
@@ -232,7 +264,7 @@ bool isWheelGrounded(b2WorldId worldId, b2BodyId wheel, b2ChainId terrainChain) 
 }
 
 void wheelstability(){
-    float limit = 25;
+    float limit = 15;
     float vel = b2Body_GetAngularVelocity(whl1);
     if (abs(vel) > limit)
         b2Body_ApplyAngularImpulse(whl1, -vel, true);
@@ -264,6 +296,28 @@ void surfaceRetention(bool wh1, bool wh2){
 
     }
 
+}
+
+int bodyIndexer(std::vector<b2BodyId>& cnlst, b2BodyId body){
+    for (int i = 0; i < cnlst.size(); i++)
+        if(cnlst[i].index1 == body.index1)
+            return i;
+    return -1;
+}
+
+void sensordetect(){
+    b2SensorEvents sensorEvents = b2World_GetSensorEvents(worldId);
+    for (int i = 0; i < sensorEvents.beginCount; ++i)
+    {
+        b2SensorBeginTouchEvent* beginTouch = sensorEvents.beginEvents + i;
+        b2BodyId coin = b2Shape_GetBody(beginTouch->sensorShapeId);
+        int index = bodyIndexer(coins, coin);
+        if(index != -1){
+            coins.erase(coins.begin()+index);
+            b2DestroyBody(coin);
+            coincount++;
+        }
+    }
 }
 
 #endif
