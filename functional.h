@@ -23,7 +23,7 @@ void cleaCoins(){
     coins.clear();
 }
 
-void createTerrain(b2WorldId worldId) {
+void createTerrain() {
     if (terrainPoints.size() < 2) return;
 
     // Ensure points are in counterclockwise order
@@ -231,24 +231,6 @@ void spawnWheel(float x, float y, float camx){
     wheels.push_back(ballId);
 }
 
-void applyForwardForce(float forceMagnitude=1000, bool front=true, bool back=true, bool dir=false) {
-    // Get the forward direction of the car in world coordinates
-    float vecx = 0.2f,vecy = 0;
-    if(front)
-        vecx += 0.4f,vecy += 0.1f;
-    if(back)
-        vecx += 0.4f,vecy += 0.1f;
-    if(dir)
-        vecx = -vecx;
-    b2Vec2 forwardDirection = b2Body_GetWorldVector(chasi, (b2Vec2){vecx, vecy}); // Assuming forward is local (0, -1)
-
-    // Compute the forward force vector
-    b2Vec2 forwardForce = forwardDirection * forceMagnitude;
-    // printf("force dierection: %f , %f\n",forwardForce.x,forwardForce.y);
-    // Apply the force at the center of mass of the car body
-    b2Body_ApplyForceToCenter(chasi, forwardForce, true);
-}
-
 bool isWheelGrounded(b2WorldId worldId, b2BodyId wheel, b2ChainId terrainChain) {
     // Get the position of the wheel
     b2Vec2 wheelPosition = b2Body_GetPosition(wheel);
@@ -286,14 +268,6 @@ bool isWheelGrounded(b2WorldId worldId, b2BodyId wheel, b2ChainId terrainChain) 
         // Perform raycast against this segment
         b2CastOutput castOutput = b2RayCastSegment(&rayInput, &chainSegment.segment, false);
 
-        // Debug output
-        // std::cout << "Checking segment " << i
-        //           << " | Origin: (" << rayInput.origin.x << ", " << rayInput.origin.y << ")"
-        //           << " | Translation: (" << rayInput.translation.x << ", " << rayInput.translation.y << ")"
-        //           << " | Hit: " << castOutput.hit
-        //           << " | Fraction: " << castOutput.fraction << "\n";
-
-        // Check for a valid hit
         if (castOutput.hit && castOutput.fraction <= 1.0f) {
             return true; // The wheel is grounded
         }
@@ -372,6 +346,31 @@ void straighten(){
     b2Body_SetAngularVelocity(chasi, -angel*2);
 }
 
+void attachHuman(){
+
+    b2DistanceJointDef disjondef = b2DefaultDistanceJointDef();
+    disjondef.bodyIdA = torso;
+    disjondef.bodyIdB = chasi;
+    disjondef.localAnchorA = (b2Vec2){0.0f, -bodyunit*2};
+    disjondef.localAnchorB = (b2Vec2){-carWidth, 0};
+    disjondef.length = 3.7f;
+    disjondef.maxLength = 4.0f;
+    disjondef.enableSpring = true;
+    disjondef.hertz = 3.0f;
+    disjondef.dampingRatio = 0.9f;
+
+    bdj1 = b2CreateDistanceJoint(worldId, &disjondef);
+    
+
+    b2RevoluteJointDef revjoindef = b2DefaultRevoluteJointDef();
+    revjoindef.bodyIdA = torso;
+    revjoindef.bodyIdB = chasi;
+    revjoindef.localAnchorA = (b2Vec2){0.0f, -bodyunit*1.3};
+    revjoindef.localAnchorB = (b2Vec2){0.0f, bodyunit*0.5};
+    bdj2 = b2CreateRevoluteJoint(worldId, &revjoindef);
+
+}
+
 void createhuman(){
     b2BodyDef bodyDef = b2DefaultBodyDef();
     bodyDef.type = b2_dynamicBody;
@@ -387,6 +386,7 @@ void createhuman(){
     shapeDef.density = 0.1f;
     shapeDef.friction = 0.3f;
     shapeDef.restitution = 0.2f;
+    shapeDef.enableContactEvents = true;
 
     b2CreatePolygonShape(torso, &shapeDef, &dynamicBox1);
     b2CreatePolygonShape(head, &shapeDef, &dynamicBox2);
@@ -397,29 +397,44 @@ void createhuman(){
     revjoindef.localAnchorA = (b2Vec2){0.0f, bodyunit*1.3};
     revjoindef.localAnchorB = (b2Vec2){0.0f, -bodyunit*0.5};
     b2CreateRevoluteJoint(worldId, &revjoindef);
-    
-    b2DistanceJointDef disjondef = b2DefaultDistanceJointDef();
-    disjondef.bodyIdA = torso;
-    disjondef.bodyIdB = chasi;
-    disjondef.localAnchorA = (b2Vec2){0.0f, -bodyunit*2};
-    disjondef.localAnchorB = (b2Vec2){-carWidth, 0};
-    disjondef.length = 3.0f;
-    disjondef.maxLength = 3.5f;
-    disjondef.enableSpring = true;
-    disjondef.hertz = 2.0f;
-    disjondef.dampingRatio = 0.9f;
-
-    b2CreateDistanceJoint(worldId, &disjondef);
-    
-    // b2RevoluteJointDef jointDef = b2DefaultRevoluteJointDef();
-    revjoindef.bodyIdA = torso;
-    revjoindef.bodyIdB = chasi;
-    revjoindef.localAnchorA = (b2Vec2){0.0f, -bodyunit*1.3};
-    revjoindef.localAnchorB = (b2Vec2){0.0f, bodyunit*0.5};
-    b2CreateRevoluteJoint(worldId, &revjoindef);
-
-
+    attachHuman();
 }
 
+void deathKill(){
+    alive = false;
+    std::cout<<"death\n";
+    b2DestroyJoint(bdj1);
+    b2DestroyJoint(bdj2);
+}
+
+bool dethdetect(b2BodyId bodyA,b2BodyId bodyB){
+    if(bodyB.index1==head.index1){
+        b2ShapeId seg[TERRAIN_SEGMENTS];
+        b2Chain_GetSegments(terrainId, seg, TERRAIN_SEGMENTS);
+
+        for(b2ShapeId i:seg)
+            if(bodyA.index1==i.index1){
+                deathKill();
+                controlle = false;
+
+                return true;
+            }
+    }
+    return false;
+}
+
+void contactdetect(){
+    b2ContactEvents contactEvents = b2World_GetContactEvents(worldId);
+    for (int i = 0; i < contactEvents.beginCount; ++i)
+    {
+        // std::cout<<"contact detected\n";
+        b2ContactBeginTouchEvent* beginEvent = contactEvents.beginEvents + i;
+        b2BodyId coliderA = b2Shape_GetBody(beginEvent->shapeIdA);
+        b2BodyId coliderB = b2Shape_GetBody(beginEvent->shapeIdB);
+        // b2CollideChainSegmentAndPolygon
+        if(dethdetect(coliderA,coliderB))
+            break;
+    }
+}
 
 #endif
