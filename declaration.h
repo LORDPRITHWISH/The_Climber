@@ -42,7 +42,7 @@ SDL_Texture *carFrame= NULL, *wheel = NULL, *ground = NULL, *background = NULL, 
 SDL_Texture *cointxt=NULL,*coinval=NULL,*gameoverlogo=NULL,*headimj=NULL,*torsoimj=NULL,*falwheel=NULL;
 b2BodyId whl1,whl2,chasi,torso,head;
 
-bool gameover = false;
+bool gameover = false, alive = true, controlle = true;
 
 b2Polygon bodygon;
 
@@ -52,7 +52,7 @@ std::vector<b2BodyId> coins;
 std::vector<b2Vec2> terrainPoints;
 const float TERRAIN_LENGTH = simWidth;
 b2ChainId terrainId;
-b2JointId wheel1,wheel2;
+b2JointId wheel1,wheel2,bdj1,bdj2;
 int coincount = 0;
 
 #endif

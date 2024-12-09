@@ -1,7 +1,6 @@
 #include "renderfunctions.h"
 
 
-
 void info(){
     std::cout<<"size: "<<coins.size()<<'\n';
     std::cout<<"terrs x point: "<<terrainPoints.back().x<<'\n';
@@ -20,14 +19,14 @@ int main(int argc, char* args[]){
     createCar();
     createJoin();
     generateTerrain();
-    createTerrain(worldId);
+    createTerrain();
     createhuman();
     // cleatePoly();
 
     float timeStep = 1.0f / 60.0f;
     int subStepCount = 4,progress = 0;
     float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
-    bool running = true,started = false,left = false, right = false, motor = false,whog1,whog2,down = false,debug=false;;
+    bool running = true,started = false,left = false, right = false, motor = false, whog1, whog2, down = false, debug=false;;
     float cameraX = 0.0f;
     SDL_SetRenderDrawBlendMode(Rend, SDL_BLENDMODE_BLEND);
     while(running){
@@ -64,7 +63,7 @@ int main(int argc, char* args[]){
                             break;
                         case SDLK_LEFT:
                             // cameraX += segmentLength;
-                            if(!left){
+                            if(controlle && !left){
                                 b2WheelJoint_SetMotorSpeed(wheel1, b2WheelJoint_GetMotorSpeed(wheel1) - 1.1f);
                                 b2WheelJoint_SetMotorSpeed(wheel2, b2WheelJoint_GetMotorSpeed(wheel2) - 1.1f);
                                 if(!motor){
@@ -79,7 +78,7 @@ int main(int argc, char* args[]){
                             break;
                         case SDLK_RIGHT:
                             // cameraX -= segmentLength;
-                            if(!right){
+                            if(controlle && !right){
                                 b2WheelJoint_SetMotorSpeed(wheel1, b2WheelJoint_GetMotorSpeed(wheel1) + 1.1f);
                                 b2WheelJoint_SetMotorSpeed(wheel2, b2WheelJoint_GetMotorSpeed(wheel2) + 1.1f);
                                 if(!motor){
@@ -92,21 +91,26 @@ int main(int argc, char* args[]){
                             }
                             break;
                         case SDLK_UP:
-                            b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 10000.0f}, true);
-                            // b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, -10000.0f}, true);
+                            if(controlle)
+                                b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 10000.0f}, true);
                             break;
                         case SDLK_DOWN:
-                            // b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, -10000.0f}, true);
+                            if(controlle){
                             b2Body_ApplyForceToCenter(whl1, (b2Vec2){0.0f, -10000.0f}, true);
                             b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, -10000.0f}, true);
+                            }
                             break;
                         case SDLK_d:
-                            b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 10.0f}, true);
-                            b2Body_ApplyAngularImpulse(chasi, -50.0f, true);
+                            if(controlle){
+                                b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 10.0f}, true);
+                                b2Body_ApplyAngularImpulse(chasi, -50.0f, true);
+                            }
                             break;
                         case SDLK_a:
-                            b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 10.0f}, true);
-                            b2Body_ApplyAngularImpulse(chasi, 50.0f, true);
+                            if(controlle){
+                                b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 10.0f}, true);
+                                b2Body_ApplyAngularImpulse(chasi, 50.0f, true);
+                            }
                             break;
                         case SDLK_SPACE:
                             if(!started)
@@ -130,6 +134,20 @@ int main(int argc, char* args[]){
                         case SDLK_w:
                             b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, 2000.0f}, true);
                             straighten();
+                            break;
+                        case SDLK_g:
+                            if(!controlle)
+                                controlle = true;
+                            break;
+                        case SDLK_k:
+                            if(alive)
+                                deathKill();
+                            else{
+                                alive = true;
+                                attachHuman();
+                                controlle = true;
+                                // b2bodyset
+                            }
                             break;
                         default:
                             break;
@@ -166,40 +184,27 @@ int main(int argc, char* args[]){
 
         if(started){
 
-            //             std::cout<<"wheel 1: "<< isWheelGrounded(worldId, whl1, terrainId)<<'\n';
-            // std::cout<<"wheel 2: "<< isWheelGrounded(worldId, whl2, terrainId)<<"\n\n";
+            if(alive)
+                contactdetect();
+            else if(!gameover){
+                over(started);
+            }
             whog1 = isWheelGrounded(worldId, whl1, terrainId);
             whog2 = isWheelGrounded(worldId, whl2, terrainId);
 
             updateTerrain(cameraX);
             if(terrendpnt - cameraX < simWidth/4)
-                createTerrain(worldId);
+                createTerrain();
 
-            if(left){
-                b2WheelJoint_SetMotorSpeed(wheel1, b2WheelJoint_GetMotorSpeed(wheel1) - 1.1f);
-                b2WheelJoint_SetMotorSpeed(wheel2, b2WheelJoint_GetMotorSpeed(wheel2) - 1.1f);
-                applyForwardForce(2000.0f,whog1,whog2,1); // negative
-                if(!whog1 || !whog2)
-                    b2Body_ApplyAngularImpulse(chasi, -10.0f, true);
-            }
-            else if(right){
-                b2WheelJoint_SetMotorSpeed(wheel1, b2WheelJoint_GetMotorSpeed(wheel1) + 1.1f);
-                b2WheelJoint_SetMotorSpeed(wheel2, b2WheelJoint_GetMotorSpeed(wheel2) + 1.1f);
-                applyForwardForce(2000.0f,whog1,whog2,0);
-                if(!whog2 || !whog1)
-                    b2Body_ApplyAngularImpulse(chasi, 10.0f, true);
-            }
-            else if(motor){
-                b2WheelJoint_SetMotorSpeed(wheel1, 0);
-                b2WheelJoint_SetMotorSpeed(wheel2, 0);
-                b2WheelJoint_EnableMotor(wheel1, false);
-                b2WheelJoint_EnableMotor(wheel2, false);
-
-                motor = false;
-            }
+            if(left)
+                momentun(whog1,whog2,-1);
+            else if(right)
+                momentun(whog1,whog2,1);
+            else if(motor)
+                motertogel(),motor = false;
+            
 
             if(down){
-                // b2Body_ApplyForceToCenter(chasi, (b2Vec2){0.0f, -10000.0f}, true);
                 b2Body_ApplyForceToCenter(whl1, (b2Vec2){0.0f, -500.0f}, true);
                 b2Body_ApplyForceToCenter(whl2, (b2Vec2){0.0f, -500.0f}, true);
             }

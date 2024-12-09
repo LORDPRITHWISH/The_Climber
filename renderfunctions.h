@@ -1,5 +1,5 @@
 #ifndef RENDER
-#include "functional.h"
+#include "controll.h"
 
 void renderTerrain(SDL_Renderer* renderer, float cameraX) {
     SDL_SetRenderDrawColor(renderer, 34, 139, 34, 255); // Terrain color
