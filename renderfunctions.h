@@ -176,5 +176,13 @@ void renderHuman(float camx){
 
 }
 
+void flasher(int width, int height, SDL_Texture* txure, const std::array<uint8_t, 4>& col){
+    SDL_SetRenderDrawColor(Rend, col[0], col[1], col[2], col[3]);
+    SDL_Rect overlay = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_RenderFillRect(Rend, &overlay);
+            
+    SDL_Rect dimention = {(SCREEN_WIDTH-width)/2, (SCREEN_HEIGHT-height)/2, width, height};
+    SDL_RenderCopy(Rend, txure, NULL, &dimention);
+}
 
 #endif

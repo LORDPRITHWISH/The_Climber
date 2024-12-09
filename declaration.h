@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <array>
 // #include <box2d/b2_polygon_shape.h>
 
 // Constants
@@ -38,9 +39,9 @@ SDL_Window* gWindow = NULL;
 SDL_Renderer* Rend = NULL;
 TTF_Font* Font = NULL;
 b2WorldId worldId;
-SDL_Texture *carFrame= NULL, *wheel = NULL, *ground = NULL, *background = NULL, *coinimj = NULL,*scoretxt=NULL,*scoreval=NULL;
-SDL_Texture *cointxt=NULL,*coinval=NULL,*gameoverlogo=NULL,*headimj=NULL,*torsoimj=NULL,*falwheel=NULL;
-b2BodyId whl1,whl2,chasi,torso,head;
+SDL_Texture *carFrame= NULL, *wheel = NULL, *ground = NULL, *background = NULL, *coinimj = NULL, *scoretxt = NULL, *scoreval = NULL ;
+SDL_Texture *cointxt = NULL, *coinval = NULL, *gameoverlogo = NULL, *headimj = NULL, *torsoimj = NULL, *falwheel = NULL, *pausetxr = NULL, *begintxt = NULL;
+b2BodyId whl1, whl2, chasi, torso, head;
 
 bool gameover = false, alive = true, controlle = true;
 

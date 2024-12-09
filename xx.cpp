@@ -2,16 +2,6 @@ flappy
 
 
 
-    SDL_Rect pacdim = {static_cast<int>(round(width/6)), static_cast<int>(round(height/4)), pacw, pach};
-    SDL_Rect assinbrd = {20,30,155,138};//EXACT DIMENSIONS OF THE BIRD
-
-    SDL_Rect strtrect = {static_cast<int>(round(width/2-250)), static_cast<int>(round(height/2-100)), 500, 200};
-    SDL_Rect govrect = {static_cast<int>(round(width/2-250)), static_cast<int>(round(height/2-100)), 500, 200};
-    SDL_Rect logorect = {10,10,40,40};
-    SDL_Rect scorrect = {80,10,200,40};
-    SDL_Rect valrect = {310,5,50,50};
-
-
     int frame = 0,duration = 0,score = 0;
     bool running = true,paused = true,started = false,collided = false,resartable = false;
     uint spat = 0,piptim=0;

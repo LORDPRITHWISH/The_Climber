@@ -1,7 +1,7 @@
 #ifndef CONTROLLER
 #include "functional.h"
 
-void applyForwardForce(float forceMagnitude=1000, bool front=true, bool back=true, int16_t dir=0) {
+void applyForwardForce(float forceMagnitude=1000, bool front=true, bool back=true, int8_t dir=0) {
     // Get the forward direction of the car in world coordinates
     float vecx = 0.2f,vecy = 0;
     if(front)
@@ -17,7 +17,7 @@ void applyForwardForce(float forceMagnitude=1000, bool front=true, bool back=tru
     b2Body_ApplyForceToCenter(chasi, forwardForce, true);
 }
 
-void momentun(bool whog1, bool whog2,int16_t dir){
+void momentun(bool whog1, bool whog2,int8_t dir){
     b2WheelJoint_SetMotorSpeed(wheel1, b2WheelJoint_GetMotorSpeed(wheel1) + 1.1f*dir);      //-ve dir is left
     b2WheelJoint_SetMotorSpeed(wheel2, b2WheelJoint_GetMotorSpeed(wheel2) + 1.1f*dir);      //+ve dir is right
     applyForwardForce(2000.0f,whog1,whog2,dir); // negative

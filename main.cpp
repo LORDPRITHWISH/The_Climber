@@ -26,7 +26,7 @@ int main(int argc, char* args[]){
     float timeStep = 1.0f / 60.0f;
     int subStepCount = 4,progress = 0;
     float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
-    bool running = true,started = false,left = false, right = false, motor = false, whog1, whog2, down = false, debug=false;;
+    bool running = true,started = false,left = false, right = false, motor = false, whog1, whog2, down = false, debug=false, firsttime = true;
     float cameraX = 0.0f;
     SDL_SetRenderDrawBlendMode(Rend, SDL_BLENDMODE_BLEND);
     while(running){
@@ -41,7 +41,7 @@ int main(int argc, char* args[]){
                     break;
                 case SDL_MOUSEBUTTONDOWN : 
                 if(!started)
-                    started = true;
+                    started = true,firsttime = false;
                 else
                     switch(ev.button.button){
                         case SDL_BUTTON_LEFT:
@@ -114,10 +114,11 @@ int main(int argc, char* args[]){
                             break;
                         case SDLK_SPACE:
                             if(!started)
-                                started = true;
+                                started = true,firsttime = false;
                             break;
                         case SDLK_RETURN:
                             started = !started;
+                            firsttime = false;
                             break;
                         case SDLK_z:
                             down = !down;
@@ -218,10 +219,14 @@ int main(int argc, char* args[]){
             if(debug)
                 started = false;
         }
-        else if(gameover){
-            SDL_Rect overlay = {0, (SCREEN_HEIGHT-500)/2, SCREEN_WIDTH, 500};
-            SDL_RenderCopy(Rend, gameoverlogo, NULL, &overlay);
-        }
+        else if(gameover)
+            flasher(SCREEN_WIDTH*0.9,SCREEN_HEIGHT*0.7,gameoverlogo,{255,0,0,150});
+        
+        else if(firsttime)
+            flasher(SCREEN_WIDTH*0.7,SCREEN_HEIGHT*0.5,begintxt,{0,0,0,100});
+        else
+            flasher(SCREEN_WIDTH*0.3,SCREEN_HEIGHT*0.3,pausetxr,{0,0,0,200});
+        
         // remderpoly(cameraX);
         rendWheel(cameraX);
         SDL_RenderPresent(Rend);

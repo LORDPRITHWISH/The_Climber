@@ -145,10 +145,20 @@ bool loader(){
         std::cout << "Failed to load wheel texture!" << std::endl;
         return false;
     }
+    pausetxr = loadTexture(path+"/pause.png");
+    if (pausetxr == NULL) {
+        std::cout << "Failed to load pause texture!" << std::endl;
+        return false;
+    }
+    begintxt = loadTexture(path+"/beginspace.png");
+    if (begintxt == NULL) {
+        std::cout << "Failed to load begin texture!" << std::endl;
+        return false;
+    }
 
     return true;
-
 }
+
 void closer(){
     SDL_DestroyTexture(carFrame);
     SDL_DestroyTexture(wheel);
