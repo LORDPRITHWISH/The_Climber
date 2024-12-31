@@ -11,8 +11,8 @@ void cleaCoins(){
         if(i>=coins.size())
             break;
         
-        if(b2Body_GetPosition(coins[i]).x < terrainPoints.back().x){
-            b2DestroyBody(coins[i]);
+        if(b2Body_GetPosition(coins[i].coinId).x < terrainPoints.back().x){
+            b2DestroyBody(coins[i].coinId);
             coins.erase(coins.begin()+i);
             std::cout<<"coin destroyed\n";
         }
@@ -70,14 +70,14 @@ void generateTerrain() {
     std::reverse(terrainPoints.begin(), terrainPoints.end());
 }
 
-void gencoin(float x, float y){ 
+void gencoin(float x, float y, int val){ 
     y+=2;
     b2BodyDef bodyDef = b2DefaultBodyDef();
     bodyDef.type = b2_staticBody;
     bodyDef.position = (b2Vec2){ x , y };
     
-    b2BodyId coin = b2CreateBody(worldId, &bodyDef);
-    coins.push_back(coin);
+    b2BodyId coinbod = b2CreateBody(worldId, &bodyDef);
+    coins.push_back(coin{coinbod,val});
 
     b2Circle circle;
     circle.radius = 1;
@@ -89,11 +89,17 @@ void gencoin(float x, float y){
     shapeDef.restitution = 0.2f;
     shapeDef.isSensor = true;
     // std::cout<<"coin created at: "<<x<<" , "<<y<<'\n';
-    b2CreateCircleShape(coin, &shapeDef, &circle);
+    b2CreateCircleShape(coinbod, &shapeDef, &circle);
 }
 
 void updateTerrain(float cameraX) {
     static int cointimer = 100;
+    // int coinmaxdist =400;
+    int coinmaxdist =200;
+    int maxcoinval = 1000;
+    
+    
+    
     float lastX = terrainPoints.front().x;
 
     float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
@@ -108,9 +114,9 @@ void updateTerrain(float cameraX) {
         float newY = perlinNoise(lastX * noiseScale) * amplitude;
         terrainPoints.insert(terrainPoints.begin(), b2Vec2{lastX, newY});
         if(!cointimer--){
-            cointimer = rand()%400+30;
+            cointimer = rand()%coinmaxdist+30;
             // cointimer = 20;
-            gencoin(lastX,newY);
+            gencoin(lastX,newY,coinvals[rand()%maxcoinval]);
         }
     }
     while (!terrainPoints.empty() && terrainPoints.back().x < cameraX-carpos) 
@@ -311,9 +317,9 @@ void surfaceRetention(bool wh1, bool wh2){
 
 }
 
-int bodyIndexer(std::vector<b2BodyId>& cnlst, b2BodyId body){
+int bodyIndexer(std::vector<coin>& cnlst, b2BodyId body){
     for (int i = 0; i < cnlst.size(); i++)
-        if(cnlst[i].index1 == body.index1)
+        if(cnlst[i].coinId.index1 == body.index1)
             return i;
     return -1;
 }
@@ -326,9 +332,10 @@ void sensordetect(){
         b2BodyId coin = b2Shape_GetBody(beginTouch->sensorShapeId);
         int index = bodyIndexer(coins, coin);
         if(index != -1){
+            int val = coins[index].value;
             coins.erase(coins.begin()+index);
             b2DestroyBody(coin);
-            coincount++;
+            coincount+=val;
         }
     }
 }

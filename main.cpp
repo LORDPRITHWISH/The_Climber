@@ -16,22 +16,29 @@ int main(int argc, char* args[]){
         return -1;
     }
 
+    
     createCar();
     createJoin();
     generateTerrain();
     createTerrain();
     createhuman();
-    // cleatePoly();
+    fillcoinvals();
 
     float timeStep = 1.0f / 60.0f;
-    int subStepCount = 4,progress = 0;
+    int subStepCount = 4,progress = 0,lc = 0,rc = 0;
     float segmentLength = TERRAIN_LENGTH / TERRAIN_SEGMENTS;
     bool running = true,started = false,left = false, right = false, motor = false, whog1, whog2, down = false, debug=false, firsttime = true;
     float cameraX = 0.0f;
     SDL_SetRenderDrawBlendMode(Rend, SDL_BLENDMODE_BLEND);
+    std::cout << "\033[?25l";  //hides the pointer
     while(running){
         Uint32 startTick;
         cameraX = b2Body_GetPosition(chasi).x- simWidth/16;
+
+        if(lc)
+            cameraX += segmentLength*lc;
+        if(rc)
+            cameraX -= segmentLength*rc;
 
         startTick = SDL_GetTicks();
         SDL_Event ev;
@@ -46,7 +53,6 @@ int main(int argc, char* args[]){
                     switch(ev.button.button){
                         case SDL_BUTTON_LEFT:
                         spawnWheel(ev.button.x, SCREEN_HEIGHT - ev.button.y, cameraX);
-                            // std::cout<<"mouse pos: "<<ev.button.x<<'\n';
                             break;
                             
                         case SDL_BUTTON_RIGHT:
@@ -159,9 +165,11 @@ int main(int argc, char* args[]){
                     switch(ev.key.keysym.sym){
                         case SDLK_LEFT:
                             left = false;
+                            // lc = 0;
                             break;
                         case SDLK_RIGHT:
                             right = false;
+                            // rc = 0;
                             break;
                         default:
                             break;
@@ -176,7 +184,6 @@ int main(int argc, char* args[]){
 
         renderBackground(cameraX);
         renderTerrain(Rend,cameraX);
-        // SDL_RenderDrawPoint(Rend,10,10);
         renderHuman(cameraX);
         renderCar(cameraX);
         showScore(cameraX);
@@ -198,9 +205,9 @@ int main(int argc, char* args[]){
                 createTerrain();
 
             if(left)
-                momentun(whog1,whog2,-1);
+                momentun(whog1,whog2,-1),lc++;
             else if(right)
-                momentun(whog1,whog2,1);
+                momentun(whog1,whog2,1),rc++;
             else if(motor)
                 motertogel(),motor = false;
             
@@ -227,12 +234,18 @@ int main(int argc, char* args[]){
         else
             flasher(SCREEN_WIDTH*0.3,SCREEN_HEIGHT*0.3,pausetxr,{0,0,0,200});
         
-        // remderpoly(cameraX);
+        if(!left && lc)
+            lc-=1;
+        if(!right && rc)
+            rc-=1;
+
         rendWheel(cameraX);
         SDL_RenderPresent(Rend);
 
         Uint32 frameDuration = SDL_GetTicks() - startTick;
-        // std::cout << "Frame Duration: " << frameDuration << "ms" << std::endl;
+        
+        std::cout << "Frame Duration: " << frameDuration << "ms" << '\r';
+        
         if (frameDuration < 1000 / 60) {
                 SDL_Delay((1000 / 60) - frameDuration);
             }

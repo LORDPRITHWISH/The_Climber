@@ -68,14 +68,22 @@ void renderCar(float cam){
 
 void rendercoins(float cam){
     for (size_t i = 0; i < coins.size(); ++i) {
-        b2Vec2 boxPos = b2Body_GetPosition(coins[i]);
+        b2Vec2 boxPos = b2Body_GetPosition(coins[i].coinId);
         SDL_Rect rect = {
             boxToScreenX(boxPos.x-cam, 1),
             boxToScreenY(boxPos.y, 1),
             static_cast<int>(SCALE * 2 ),
             static_cast<int>(SCALE * 2 )
         };
+        SDL_Texture* coinvaltxt = textTexture(std::to_string(coins[i].value),{255,255,255});
         SDL_RenderCopy(Rend, coinimj, NULL, &rect);
+        // rect.y -= 20;
+        // SDL_QueryTexture(coinvaltxt,NULL,NULL,&rect.w,&rect.h);
+        // rect.w = (rect.w*40)/rect.h;
+        // rect.h = 40;
+        SDL_RenderCopy(Rend, coinvaltxt, NULL, &rect);
+    SDL_DestroyTexture(coinvaltxt);
+
     }
 }
 

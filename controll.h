@@ -1,6 +1,35 @@
 #ifndef CONTROLLER
 #include "functional.h"
 
+void fillcoinvals(){
+    int valslen = 1000;
+    coinvals = new int[valslen];
+    for(int i=0;i<valslen;i++){
+        if(i<50)
+            coinvals[i] = 500;
+        else if(i<150)
+            coinvals[i] = 250;
+        else if(i<250)
+            coinvals[i] = 180;
+        else if(i<450)
+            coinvals[i] = 120;
+        else if(i<500)
+            coinvals[i] = 90;
+        else if(i<600)
+            coinvals[i] = 50;
+        else if(i<700)
+            coinvals[i] = 40;
+        else if(i<800)
+            coinvals[i] = 30;
+        else if(i<900)
+            coinvals[i] = 20;
+        else
+            coinvals[i] = 10;
+
+    }
+        // coinvals[i] = 1;
+}
+
 void applyForwardForce(float forceMagnitude=1000, bool front=true, bool back=true, int8_t dir=0) {
     // Get the forward direction of the car in world coordinates
     float vecx = 0.2f,vecy = 0;

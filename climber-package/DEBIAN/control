@@ -1,0 +1,7 @@
+Package: climber
+Version: 1.0.0
+Architecture: amd64
+Maintainer: Your Name <prithwishchakraborty05@gmail.com>
+Description: The Climber game using SDL2 and Box2D.
+Depends: libsdl2-2.0-0, libsdl2-image-2.0-0, libsdl2-ttf-2.0-0, libbox2d-dev
+Priority: optional

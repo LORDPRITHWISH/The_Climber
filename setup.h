@@ -49,19 +49,26 @@ bool init(){
 
 
 }
+
+std::string findpath() {
+	//std::string path = "../assets";
+	if (std::filesystem::exists("../assets")) 
+		return "../assets";
+		//std::cout << "Directory exists: " << path << std::endl;
+	if (std::filesystem::exists("./assets"))
+		return "./assets";
+	//std::cout << "adjusting to : " << path << std::endl;
+	if (std::filesystem::exists("/usr/local/share/climber"))
+		return "/usr/local/share/climber";
+	//std::cout << "adjusting to : " << path << std::endl;
+	return std::string(SDL_GetBasePath()) + "assets";
+}
+
 bool loader(){
-    std::string path = "../assets";
-    std::string fpath = "../fonts";
+    std::string path = findpath();
 
-    if (std::filesystem::exists(path)) {
-        std::cout << "Directory exists: " << path << std::endl;
-    } else {
-        path = "./assets";
-        fpath = "./assets";
-        std::cout << "adjusting to : " << path << std::endl;
-    }
 
-    Font = TTF_OpenFont((fpath + "/sifi_font.ttf").c_str(), 28);
+    Font = TTF_OpenFont((path + "/sifi_font.ttf").c_str(), 28);
     if (Font == NULL) {
         std::cout << "Failed to load font! TTF_Error: " << TTF_GetError() << std::endl;
         return false;

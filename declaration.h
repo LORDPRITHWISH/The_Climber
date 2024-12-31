@@ -47,13 +47,20 @@ bool gameover = false, alive = true, controlle = true;
 
 b2Polygon bodygon;
 
+struct coin{
+    b2BodyId coinId;
+    int value;
+};
+
+int* coinvals = NULL;
 
 std::vector<b2BodyId> wheels;
-std::vector<b2BodyId> coins;
+std::vector<coin> coins;
 std::vector<b2Vec2> terrainPoints;
 const float TERRAIN_LENGTH = simWidth;
 b2ChainId terrainId;
 b2JointId wheel1,wheel2,bdj1,bdj2;
 int coincount = 0;
+
 
 #endif
